@@ -1,13 +1,11 @@
 #include <HsFFI.h>
 #include <setjmp.h>
-#include "io_tweag_sparkle_Sparkle.h"
+#include "io_tweag_jarify_Jarify.h"
 #include <stdlib.h>  // For malloc, free
 #include <string.h>  // For memcpy
 #include "Rts.h"
 
-extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
-
-// main is provided when linking an executable. But sparkle is sometimes
+// main is provided when linking an executable. But jarify is sometimes
 // loaded dynamically when no main symbol is provided. Typically, ghc
 // could load it when building code which uses ANN pragmas or template
 // haskell.
@@ -23,26 +21,11 @@ extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
 // [2] https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-g_t_0040code_007bweak_007d-function-attribute-3369
 extern int main(int argc, char *argv[]) __attribute__((weak));
 
-static int sparkle_argc = 1;
-static char** sparkle_argv = (char*[]){ "sparkle-worker", NULL };
-// static int sparkle_argc = 4;
-// static char* sparkle_argv[] =
-//     (char*[]){ "sparkle-dummy", "+RTS", "-A1G", "-H1G", NULL };
-
-JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
-  (JNIEnv * env, jclass klass)
-{
-	// TODO: accept values for argc, argv via Java properties.
-	hs_init(&sparkle_argc, &sparkle_argv);
-	if (!rtsSupportsBoundThreads())
-	    (*env)->FatalError(env,"Sparkle.initializeHaskellRTS: Haskell RTS is not threaded.");
-}
-
-JNIEXPORT jobject JNICALL Java_io_tweag_sparkle_Sparkle_apply
-(JNIEnv * env, jclass klass, jbyteArray bytes, jobjectArray args)
-{
-	return sparkle_apply(bytes, args);
-}
+static int jarify_argc = 1;
+static char** jarify_argv = (char*[]){ "jarify-worker", NULL };
+// static int jarify_argc = 4;
+// static char* jarify_argv[] =
+//     (char*[]){ "jarify-dummy", "+RTS", "-A1G", "-H1G", NULL };
 
 static jmp_buf bootstrap_env;
 
@@ -53,12 +36,12 @@ static void bypass_exit(int rc)
 {
 	/* If the exit code is 0, then jump the control flow back to
 	 * invokeMain(), because we don't want the RTS to call exit() -
-	 * we'd like to give Spark a chance to perform whatever
+	 * we'd like to give the JVM a chance to perform whatever
 	 * cleanup it needs. */
 	if(!rc) longjmp(bootstrap_env, 0);
 }
 
-JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
+JNIEXPORT void JNICALL Java_io_tweag_jarify_JarifyMain_invokeMain
 (JNIEnv * env, jclass klass, jobjectArray stringArr)
 {
 	/* Set a control prompt just before calling main. If main()
@@ -75,16 +58,16 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
 		return;
 	}
 
-	// Allocate memory for `argv`. It requires (jargc + sparkle_argc + 1)
+	// Allocate memory for `argv`. It requires (jargc + jarify_argc + 1)
 	// pointers in it. The '+ 1' is for the extra NULL pointer that is
 	// required by `argv` arrays.
-	char** new_argv = malloc((jargc + sparkle_argc + 1) * sizeof(char*));
+	char** new_argv = malloc((jargc + jarify_argc + 1) * sizeof(char*));
 	if (!new_argv) {
 		return;
 	}
 
 	// Retain the 0th value (program name) from the existing argv.
-	new_argv[0] = sparkle_argv[0];
+	new_argv[0] = jarify_argv[0];
 
 	int success = 1;
 	jsize numStrs = 0;
@@ -142,21 +125,21 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
 		return;
 	}
 
-	// Put the remaining sparkle_argv elements into new_argv.
-	for (jsize i = 1; i < sparkle_argc; i++) {
-		new_argv[jargc + i] = sparkle_argv[i];
+	// Put the remaining jarify_argv elements into new_argv.
+	for (jsize i = 1; i < jarify_argc; i++) {
+		new_argv[jargc + i] = jarify_argv[i];
 	}
 
 	// Make sure that Haskell code finds these new values for argc, argv.
-	sparkle_argc += jargc;
-	sparkle_argv = new_argv;
+	jarify_argc += jargc;
+	jarify_argv = new_argv;
 
 	// `argv` always has a NULL pointer in its argc-th position. We allocated
 	// enough positions in new_argv for this, in the malloc(), above.
-	new_argv[sparkle_argc] = NULL;
+	new_argv[jarify_argc] = NULL;
 
 	// Call the Haskell main() function.
-	main(sparkle_argc, sparkle_argv);
+	main(jarify_argc, jarify_argv);
 
 	// Deallocate resources from above.
 	for (jsize i = 1; i <= jargc; i++) {

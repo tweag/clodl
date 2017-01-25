@@ -4,11 +4,6 @@ repositories {
   mavenCentral()
 }
 
-dependencies {
-  compile 'org.apache.spark:spark-core_2.10:1.6.0'
-  compile 'org.apache.spark:spark-mllib_2.10:1.6.0'
-}
-
 compileJava {
   sourceCompatibility = 1.7
   targetCompatibility = 1.7
@@ -16,6 +11,6 @@ compileJava {
 
 jar {
   manifest {
-    attributes "Main-Class": "io.tweag.sparkle.SparkMain"
+    attributes "Main-Class": "io.tweag.jarify.JarifyMain"
   }
 }
