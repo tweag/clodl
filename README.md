@@ -1,51 +1,91 @@
-# What is Jarify ?
+# JARify: transmutation of native binaries into JVM apps
 
-Most of today's big data landscape runs on the JVM and sometimes offers python
-or javascript support, but Haskell support is hard to find.
+Give `jarify` a dynamically linked executable `launch-missiles`, out
+comes a standalone JVM application `launch-missiles.jar`. You can run
+it with
 
-[Sparkle](https://github.com/tweag/sparkle) answered this question for Spark
-and Hadoop, allowing programmers to write jobs in Haskell by transforming them
-into `.jar` files.
-
-The `jarify` package is the software used in sparkle to generate this `.jar`
-file from Haskell source code, and thus letting people write Haskell code and
-execute it on JVMs.
-
-# How to use jarify
-
-## Building
-
-Jarify can be built with a simple:
 ```
-stack --nix build jarify
+$ java -jar launch-missiles.jar
 ```
 
-## Creating a project to be jarified
+The resulting JAR does not fork `launch-missiles` in a separate
+process when run. It is dynamically loaded into the same address space
+as the JVM spawned by `java` and can therefore call into the JVM (e.g.
+using the [JNI][jni]).
 
-Here $PACKAGE will refer to the name of the package you want to jarify
+[jni]: https://docs.oracle.com/javase/8/docs/technotes/guides/jni/spec/jniTOC.html
 
-You will need the following lines in your `$PACKAGE.cabal` in order to allow it
-to be jarified
+## Building it
 
-* add `jarify` to your `build-depends`
-* add `-pie -Wl,-z,origin -Wl,-rpath,$ORIGIN` to your `ld-options`
+**Requirements:**
+* the [Stack][stack] build tool (version 1.2 or above);
+* either, the [Nix][nix] package manager,
+* or, OpenJDK and Gradle installed globally on your system.
 
-The `$ORIGIN` is currently a bit hacky and should be soon removed.
+To build and copy `jarify` to `~/.local/bin`:
 
-The `-pie`, creates your package as a
-[Position Independent Executable](https://en.wikipedia.org/wiki/Position-independent_code),
-this allows it to be used as a dynamic library by the java stub that will call
-it (provoded by `jarify`).
-
-## Jaraify the project
-
-To get the jar from your package:
-
-* build the package using the `--nix` flag
-* launch `stack --nix exec -- jarify package $PACKAGE`, this should output your
-  jar into `$PACKAGE.jar`
-
-You can then execute your `jar` (if it is an executable) using:
 ```
-stack --nix exec -- java -jar $PACKAGE.jar
+$ stack build --copy-bins
 ```
+
+You can optionally get Stack to download a JDK in a local sandbox
+(using [Nix][nix]) for good build results reproducibility. **This is
+the recommended way to build jarify.** Alternatively, you'll need
+it installed through your OS distribution's package manager for the
+next steps (and you'll need to tell Stack how to find the JVM header
+files and shared libraries).
+
+To use Nix, set the following in your `~/.stack/config.yaml` (or pass
+`--nix` to all Stack commands, see the [Stack manual][stack-nix] for
+more):
+
+```yaml
+nix:
+  enable: true
+```
+
+[stack]: https://github.com/commercialhaskell/stack
+[stack-nix]: https://docs.haskellstack.org/en/stable/nix_integration/#configuration
+[nix]: http://nixos.org/nix
+
+## Usage
+
+Any [position independent][wp-pic] (dynamically linked) executable
+(PIE) can be transmutated in this way:
+
+```
+$ jarify <FILE>
+```
+
+On OS X, all executables are PIE.
+
+To create a PIE on Linux and other platforms, pass the `-pie` flag to
+the linker. Currently, we furthermore require "origin processing" to
+be turned on. Here is the full set of options to pass to `ld`:
+
+```
+$ gcc -pie -Wl,-z,origin -Wl,-rpath,$ORIGIN ...
+```
+
+Some distributions create position independent executables by default
+(Ubuntu and Debian on some architectures).
+
+[wp-pic]: https://en.wikipedia.org/wiki/Position-independent_code
+
+## License
+
+Copyright (c) 2015-2016 EURL Tweag.
+
+All rights reserved.
+
+jarify is free software, and may be redistributed under the terms
+specified in the [LICENSE](LICENSE) file.
+
+## About
+
+![Tweag I/O](http://i.imgur.com/0HK8X4y.png)
+
+jarify is maintained by [Tweag I/O](http://tweag.io/).
+
+Have questions? Need help? Tweet at
+[@tweagio](http://twitter.com/tweagio).
