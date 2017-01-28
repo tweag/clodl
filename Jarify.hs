@@ -47,5 +47,5 @@ main :: IO ()
 main = do
     argv <- getArgs
     case argv of
-      ["package", cmd] -> doPackage cmd
-      _ -> fail "Usage: jarify package <command>"
+      [cmd] -> doPackage cmd
+      _ -> fail "Usage: jarify <command>"
