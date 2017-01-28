@@ -35,6 +35,7 @@ executable jarify
   build-depends:
     base >= 4.8 && < 5,
     bytestring >= 0.10,
+    directory >= 1.2,
     filepath >= 1.4,
     process >= 1.2,
     regex-tdfa >= 1.2,

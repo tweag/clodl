@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Main where
 
 import Codec.Archive.Zip
@@ -5,6 +7,7 @@ import Data.Text (pack, strip, unpack)
 import Data.List (isInfixOf)
 import qualified Data.ByteString.Lazy as BS
 import Paths_jarify
+import System.Directory (doesFileExist)
 import System.Environment (getArgs)
 import System.FilePath ((</>), (<.>), takeBaseName, takeFileName)
 import System.Info (os)
@@ -16,7 +19,9 @@ doPackage :: FilePath -> IO ()
 doPackage cmd = do
     dir <- getDataDir
     jarbytes <- BS.readFile (dir </> "stub.jar")
-    cmdpath <- unpack . strip . pack <$> readProcess "which" [cmd] ""
+    cmdpath <- doesFileExist cmd >>= \case
+      False -> unpack . strip . pack <$> readProcess "which" [cmd] ""
+      True -> return cmd
     ldd <- case os of
       "darwin" -> do
         hPutStrLn
