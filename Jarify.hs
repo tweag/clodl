@@ -3,6 +3,12 @@
 module Main where
 
 import Codec.Archive.Zip
+  ( addEntryToArchive
+  , emptyArchive
+  , fromArchive
+  , toArchive
+  , toEntry
+  )
 import Data.Text (pack, strip, unpack)
 import Data.List (isInfixOf)
 import qualified Data.ByteString.Lazy as BS
