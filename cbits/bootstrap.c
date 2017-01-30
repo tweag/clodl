@@ -1,6 +1,6 @@
 #include <HsFFI.h>
+#include <jni.h>
 #include <setjmp.h>
-#include "io_tweag_jarify_Jarify.h"
 #include <stdlib.h>  // For malloc, free
 #include <string.h>  // For memcpy
 #include "Rts.h"
