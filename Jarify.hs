@@ -44,14 +44,14 @@ doPackage cmd = do
  
     ------------------------------------------------------------
     -- fix the linking issue
-    readProcess "patchelf" ["-set--rpath '$ORIGIN' " ++ cmdpath] ""
+    readProcess "patchelf" ["--set-rpath", "$ORIGIN", cmdpath] ""
 
     -- add the .so dependency
     lib <- getLibDir
     files <- getDirectoryContents $ lib </> ".."
     let so = head $
           filter (liftA2 (&&) (isSuffixOf ".so") (isPrefixOf "libHSjarify")) files
-    --readProcess "patchelf" ["--add-needed " ++ lib </> ".." </> so] cmdpath
+    readProcess "patchelf" ["--add-needed", lib </> ".." </> so, cmdpath] ""
     -------------------------------------------------------------
 
     cmdentry <- toEntry "hsapp" 0 <$> BS.readFile cmdpath
