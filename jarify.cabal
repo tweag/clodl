@@ -13,8 +13,20 @@ cabal-version:       >=1.10
 extra-source-files:
   src/main/java/io/tweag/jarify/JarifyBase.java
   src/main/java/io/tweag/jarify/JarifyMain.java
-data-dir: build/libs
-data-files: stub.jar
+  vendor/patchelf/bootstrap.sh
+  vendor/patchelf/configure.ac
+  vendor/patchelf/patchelf.1
+  vendor/patchelf/README
+  vendor/patchelf/version
+  vendor/patchelf/*.am
+  vendor/patchelf/*.spec.in
+  vendor/patchelf/src/*.am
+  vendor/patchelf/src/*.cc
+  vendor/patchelf/src/*.h
+  vendor/patchelf/tests/*.am
+data-files:
+  build/libs/stub.jar
+  build/bin/patchelf
 
 source-repository head
   type:     git

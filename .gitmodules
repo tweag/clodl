@@ -1,0 +1,3 @@
+[submodule "vendor/patchelf"]
+	path = vendor/patchelf
+	url = https://github.com/NixOS/patchelf

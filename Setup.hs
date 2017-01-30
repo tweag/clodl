@@ -1,12 +1,33 @@
+import Data.Monoid
 import Distribution.Simple
-import System.Process
+import System.Directory (getCurrentDirectory, withCurrentDirectory)
+import System.Process (system)
 import System.Exit
+import System.FilePath ((</>))
 
-main = defaultMainWithHooks simpleUserHooks { postBuild = buildJavaSource }
+main = defaultMainWithHooks simpleUserHooks
+    { postConf = \_ _ _ _ -> configurePatchElf
+    , postBuild = \_ _ _ _ -> do
+        buildJavaSource
+        buildPatchElf
+    }
 
-buildJavaSource _ _ _ _ = do
+configurePatchElf = do
+    withCurrentDirectory "vendor/patchelf" $
+      executeShellCommand "./bootstrap.sh"
+    cwd <- getCurrentDirectory
+    executeShellCommand "mkdir -p build/src/patchelf"
+    withCurrentDirectory "build/src/patchelf" $
+      executeShellCommand $
+        cwd </> "vendor/patchelf/configure --prefix=" <>
+        cwd </> "build"
+
+buildJavaSource = do
     executeShellCommand "gradle build"
-    return ()
+
+buildPatchElf = do
+    withCurrentDirectory "build/src/patchelf" $
+      executeShellCommand "make install"
 
 executeShellCommand cmd = system cmd >>= check
   where

@@ -24,7 +24,7 @@ import Text.Regex.TDFA
 doPackage :: FilePath -> IO ()
 doPackage cmd = do
     dir <- getDataDir
-    jarbytes <- BS.readFile (dir </> "stub.jar")
+    jarbytes <- BS.readFile (dir </> "build/libs/stub.jar")
     cmdpath <- doesFileExist cmd >>= \case
       False -> unpack . strip . pack <$> readProcess "which" [cmd] ""
       True -> return cmd

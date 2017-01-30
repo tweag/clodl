@@ -7,7 +7,7 @@ let
 in
 haskell.lib.buildStackProject {
   name = "jarify";
-  buildInputs = [ gradle openjdk which ];
+  buildInputs = [ autoconf automake git gradle openjdk which zlib ];
   inherit ghc;
   LANG = "en_US.utf8";
 }
