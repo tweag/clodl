@@ -74,7 +74,7 @@ Some distributions create position independent executables by default
 
 ## License
 
-Copyright (c) 2015-2016 EURL Tweag.
+Copyright (c) 2015-2017 EURL Tweag.
 
 All rights reserved.
 
