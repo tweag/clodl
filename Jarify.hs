@@ -2,6 +2,7 @@
 
 module Main where
 
+import Control.Applicative (liftA2)
 import Codec.Archive.Zip
   ( addEntryToArchive
   , emptyArchive
@@ -10,15 +11,16 @@ import Codec.Archive.Zip
   , toEntry
   )
 import Data.Text (pack, strip, unpack)
-import Data.List (isInfixOf)
+import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 import qualified Data.ByteString.Lazy as BS
 import Paths_jarify
-import System.Directory (doesFileExist)
+import System.Directory (doesFileExist, getDirectoryContents)
 import System.Environment (getArgs)
+import System.Exit
 import System.FilePath ((</>), (<.>), takeBaseName, takeFileName)
 import System.Info (os)
 import System.IO (hPutStrLn, stderr)
-import System.Process (readProcess)
+import System.Process (readProcess, system)
 import Text.Regex.TDFA
 
 doPackage :: FilePath -> IO ()
@@ -39,6 +41,19 @@ doPackage cmd = do
           filter (\x -> not $ any (`isInfixOf` x) ["libc.so", "libpthread.so"]) $
           map (!! 1) (ldd =~ " => ([[:graph:]]+) " :: [[String]])
     libentries <- mapM mkEntry libs
+ 
+    ------------------------------------------------------------
+    -- fix the linking issue
+    readProcess "patchelf" ["-set--rpath '$ORIGIN' " ++ cmdpath] ""
+
+    -- add the .so dependency
+    lib <- getLibDir
+    files <- getDirectoryContents $ lib </> ".."
+    let so = head $
+          filter (liftA2 (&&) (isSuffixOf ".so") (isPrefixOf "libHSjarify")) files
+    --readProcess "patchelf" ["--add-needed " ++ lib </> ".." </> so] cmdpath
+    -------------------------------------------------------------
+
     cmdentry <- toEntry "hsapp" 0 <$> BS.readFile cmdpath
     let appzip =
           toEntry "jarify-app.zip" 0 $
