@@ -37,21 +37,20 @@ doPackage cmd = do
           "WARNING: JAR not self contained on OS X (shared libraries not copied)."
         return ""
       _ -> readProcess "ldd" [cmdpath] ""
+
+    -- Get the jarify bootstrap code in the libs
+    lib <- getLibDir
+    files <- getDirectoryContents $ lib </> ".."
+    let so = head $
+          filter (liftA2 (&&) (isSuffixOf ".so") (isPrefixOf "libHSjarify")) files
     let libs =
-          filter (\x -> not $ any (`isInfixOf` x) ["libc.so", "libpthread.so"]) $
+          filter (\x -> not $ any (`isInfixOf` x) ["libc.so", "libpthread.so", so]) $
           map (!! 1) (ldd =~ " => ([[:graph:]]+) " :: [[String]])
     libentries <- mapM mkEntry libs
  
     ------------------------------------------------------------
     -- fix the linking issue
-    readProcess "patchelf" ["--set-rpath", "$ORIGIN", cmdpath] ""
-
-    -- add the .so dependency
-    lib <- getLibDir
-    files <- getDirectoryContents $ lib </> ".."
-    let so = head $
-          filter (liftA2 (&&) (isSuffixOf ".so") (isPrefixOf "libHSjarify")) files
-    readProcess "patchelf" ["--add-needed", lib </> ".." </> so, cmdpath] ""
+    --readProcess "patchelf" ["--set-rpath", "$ORIGIN", cmdpath] ""
     -------------------------------------------------------------
 
     cmdentry <- toEntry "hsapp" 0 <$> BS.readFile cmdpath

@@ -30,8 +30,7 @@ data-files:
 
 source-repository head
   type:     git
-  location: https://github.com/tweag/inline-java
-  subdir:   jarify
+  location: https://github.com/tweag/jarify
 
 library
   include-dirs: cbits
