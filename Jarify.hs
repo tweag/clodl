@@ -9,13 +9,14 @@ import Codec.Archive.Zip
   , toArchive
   , toEntry
   )
+import Control.Monad (unless)
 import Data.Text (pack, strip, unpack)
 import Data.List (isInfixOf)
 import qualified Data.ByteString.Lazy as BS
 import Paths_jarify
 import System.Directory (doesFileExist)
 import System.Environment (getArgs)
-import System.FilePath ((</>), (<.>), takeBaseName, takeFileName)
+import System.FilePath ((</>), (<.>), isAbsolute, takeBaseName, takeFileName)
 import System.Info (os)
 import System.IO (hPutStrLn, stderr)
 import System.Process (readProcess)
@@ -35,9 +36,19 @@ doPackage cmd = do
           "WARNING: JAR not self contained on OS X (shared libraries not copied)."
         return ""
       _ -> readProcess "ldd" [cmdpath] ""
-    let libs =
+    let unresolved =
+          map fst $
+          filter (not . isAbsolute . snd) $
+          map (\xs -> (xs !! 1, xs !! 2)) (ldd =~ "(.+) => (.+)" :: [[String]])
+        libs =
           filter (\x -> not $ any (`isInfixOf` x) ["libc.so", "libpthread.so"]) $
-          map (!! 1) (ldd =~ " => ([[:graph:]]+) " :: [[String]])
+          map (!! 1) (ldd =~ " => (.*) \\(0x[0-9a-f]+\\)" :: [[String]])
+    unless (null unresolved) $
+      fail $
+        "Unresolved libraries in " ++
+        cmdpath ++
+        ":\n" ++
+        unlines unresolved
     libentries <- mapM mkEntry libs
     cmdentry <- toEntry "hsapp" 0 <$> BS.readFile cmdpath
     let appzip =
