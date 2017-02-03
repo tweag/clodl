@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TupleSections #-}
 
 module Main where
 
@@ -11,47 +12,63 @@ import Codec.Archive.Zip
   )
 import Control.Monad (unless)
 import Data.Text (pack, strip, unpack)
-import Data.List (isInfixOf)
+import Data.List (intercalate, isInfixOf)
 import qualified Data.ByteString.Lazy as BS
 import Paths_jarify
-import System.Directory (doesFileExist)
+import System.Directory (copyFile, doesFileExist)
 import System.Environment (getArgs)
 import System.FilePath ((</>), (<.>), isAbsolute, takeBaseName, takeFileName)
 import System.Info (os)
 import System.IO (hPutStrLn, stderr)
-import System.Process (readProcess)
+import System.IO.Temp (withSystemTempFile)
+import System.Process (callProcess, readProcess)
 import Text.Regex.TDFA
+
+stripString :: String -> String
+stripString = unpack . strip . pack
+
+-- | Add @$ORIGIN@ to RPATH and dependency on @libHSjarify.so@.
+patchElf :: FilePath -> IO ()
+patchElf exe = do
+    dyndir <- getDynLibDir
+    rpath <- readProcess "patchelf" ["--print-rpath", exe] ""
+    let newrpath = intercalate ":" ["$ORIGIN", dyndir, rpath]
+    callProcess "patchelf" ["--set-rpath", newrpath, exe]
 
 doPackage :: FilePath -> IO ()
 doPackage cmd = do
     dir <- getDataDir
     jarbytes <- BS.readFile (dir </> "build/libs/stub.jar")
     cmdpath <- doesFileExist cmd >>= \case
-      False -> unpack . strip . pack <$> readProcess "which" [cmd] ""
+      False -> stripString <$> readProcess "which" [cmd] ""
       True -> return cmd
-    ldd <- case os of
-      "darwin" -> do
-        hPutStrLn
-          stderr
-          "WARNING: JAR not self contained on OS X (shared libraries not copied)."
-        return ""
-      _ -> readProcess "ldd" [cmdpath] ""
-    let unresolved =
-          map fst $
-          filter (not . isAbsolute . snd) $
-          map (\xs -> (xs !! 1, xs !! 2)) (ldd =~ "(.+) => (.+)" :: [[String]])
-        libs =
-          filter (\x -> not $ any (`isInfixOf` x) ["libc.so", "libpthread.so"]) $
-          map (!! 1) (ldd =~ " => (.*) \\(0x[0-9a-f]+\\)" :: [[String]])
-    unless (null unresolved) $
-      fail $
-        "Unresolved libraries in " ++
-        cmdpath ++
-        ":\n" ++
-        unlines unresolved
+    (hsapp, libs) <- withSystemTempFile "hsapp" $ \tmp _ -> do
+      copyFile cmdpath tmp
+      patchElf tmp
+      ldd <- case os of
+        "darwin" -> do
+          hPutStrLn
+            stderr
+            "WARNING: JAR not self contained on OS X (shared libraries not copied)."
+          return ""
+        _ -> readProcess "ldd" [tmp] ""
+      let unresolved =
+            map fst $
+            filter (not . isAbsolute . snd) $
+            map (\xs -> (xs !! 1, xs !! 2)) (ldd =~ "(.+) => (.+)" :: [[String]])
+          libs =
+            filter (\x -> not $ any (`isInfixOf` x) ["libc.so", "libpthread.so"]) $
+            map (!! 1) (ldd =~ " => (.*) \\(0x[0-9a-f]+\\)" :: [[String]])
+      unless (null unresolved) $
+        fail $
+          "Unresolved libraries in " ++
+          cmdpath ++
+          ":\n" ++
+          unlines unresolved
+      (, libs) <$> BS.readFile tmp
     libentries <- mapM mkEntry libs
-    cmdentry <- toEntry "hsapp" 0 <$> BS.readFile cmdpath
-    let appzip =
+    let cmdentry = toEntry "hsapp" 0 hsapp
+        appzip =
           toEntry "jarify-app.zip" 0 $
           fromArchive $
           foldr addEntryToArchive emptyArchive (cmdentry : libentries)
