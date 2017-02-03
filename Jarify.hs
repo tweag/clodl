@@ -35,10 +35,9 @@ patchElf exe = do
     let newrpath = intercalate ":" ["$ORIGIN", dyndir, rpath]
     callProcess "patchelf" ["--set-rpath", newrpath, exe]
 
-doPackage :: FilePath -> IO ()
-doPackage cmd = do
-    dir <- getDataDir
-    jarbytes <- BS.readFile (dir </> "build/libs/stub.jar")
+doPackage :: FilePath -> FilePath -> IO ()
+doPackage baseJar cmd = do
+    jarbytes <- BS.readFile baseJar
     cmdpath <- doesFileExist cmd >>= \case
       False -> stripString <$> readProcess "which" [cmd] ""
       True -> return cmd
@@ -81,5 +80,9 @@ main :: IO ()
 main = do
     argv <- getArgs
     case argv of
-      [cmd] -> doPackage cmd
-      _ -> fail "Usage: jarify <command>"
+      ["--base-jar", baseJar, path] -> doPackage baseJar path
+      [path] -> do
+        dir <- getDataDir
+        -- Use executables' base jar by default.
+        doPackage (dir </> "build/libs/stub.jar") path
+      _ -> fail "Usage: jarify [--base-jar FILE] <command>"
