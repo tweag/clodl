@@ -1,0 +1,20 @@
+box: tweag/jarify
+
+build:
+  steps:
+  - script:
+      name: Submodules
+      code: |
+        git submodule update --init
+  - script:
+      name: Dependencies
+      code: |
+        stack --no-terminal build --only-snapshot --prefetch --test
+  - script:
+      name: Project
+      code: |
+        stack --no-terminal build --pedantic --test --no-run-tests
+  - script:
+      name: Tests
+      code: |
+        stack --no-terminal test
