@@ -11,6 +11,7 @@ category:            FFI, JVM, Java
 build-type:          Custom
 cabal-version:       >=1.10
 extra-source-files:
+  src/main/java/io/tweag/jarify/HaskellLibraryLoader.java
   src/main/java/io/tweag/jarify/JarifyBase.java
   src/main/java/io/tweag/jarify/JarifyMain.java
   vendor/patchelf/bootstrap.sh
