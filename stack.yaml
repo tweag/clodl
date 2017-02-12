@@ -4,7 +4,6 @@ compiler: ghc-8.0.2
 
 packages:
 - .
-- apps/hello
 
 nix:
   # Requires Stack >= 1.2.
