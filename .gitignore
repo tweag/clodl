@@ -1,3 +1,11 @@
+# Vim
+*.swp
+
+# Jarify output
+*.jar
+*.class
+
+# Haskell
 dist
 cabal-dev
 *.o
