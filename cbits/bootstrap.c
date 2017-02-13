@@ -31,6 +31,9 @@ JNIEXPORT void JNICALL Java_io_tweag_jarify_HaskellLibraryLoader_initializeHaske
 (JNIEnv *env, jclass klass)
 {
 	hs_init(&jarify_argc, &jarify_argv);
+	if (!rtsSupportsBoundThreads()) {
+	  (*env)->FatalError(env,"Jarify.initializeHaskellRTS: Haskell RTS is not threaded.");
+  }
 }
 
 static jmp_buf bootstrap_env;

@@ -15,7 +15,8 @@ import java.util.zip.*;
  * also loaded.
  */
 public class HaskellLibraryLoader {
-    static {
+
+    public static void loadLibraries() {
 	try {
 	    InputStream in =
 		HaskellLibraryLoader.class.getResourceAsStream("/jarify-app.zip");
