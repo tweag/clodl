@@ -1,3 +1,7 @@
+# Jarify output
+*.jar
+
+# Haskell
 dist
 cabal-dev
 *.o
