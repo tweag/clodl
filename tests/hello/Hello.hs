@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE StaticPointers #-}
-
 module Main where
 
 main :: IO ()
