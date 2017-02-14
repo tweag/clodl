@@ -17,4 +17,5 @@ build:
   - script:
       name: Tests
       code: |
-        stack --no-terminal test
+        stack --nix exec -- jarify hello
+        stack --nix exec -- java -jar hello.jar

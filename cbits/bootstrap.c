@@ -27,6 +27,15 @@ static char** jarify_argv = (char*[]){ "jarify-worker", NULL };
 // static char* jarify_argv[] =
 //     (char*[]){ "jarify-dummy", "+RTS", "-A1G", "-H1G", NULL };
 
+JNIEXPORT void JNICALL Java_io_tweag_jarify_HaskellLibraryLoader_initializeHaskell
+(JNIEnv *env, jclass klass)
+{
+	hs_init(&jarify_argc, &jarify_argv);
+	if (!rtsSupportsBoundThreads()) {
+	  (*env)->FatalError(env,"Jarify.initializeHaskellRTS: Haskell RTS is not threaded.");
+  }
+}
+
 static jmp_buf bootstrap_env;
 
 /* A global callback defined in the GHC RTS. */

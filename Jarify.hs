@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -16,7 +17,7 @@ import Data.List (intercalate, isInfixOf)
 import qualified Data.ByteString.Lazy as BS
 import Paths_jarify
 import System.Directory (copyFile, doesFileExist)
-import System.Environment (getArgs)
+import System.Environment (getArgs, getExecutablePath)
 import System.FilePath ((</>), (<.>), isAbsolute, takeBaseName, takeFileName)
 import System.Info (os)
 import System.IO (hPutStrLn, stderr)
@@ -51,13 +52,22 @@ doPackage baseJar cmd = do
             "WARNING: JAR not self contained on OS X (shared libraries not copied)."
           return ""
         _ -> readProcess "ldd" [tmp] ""
+      self <- getExecutablePath
+      selfldd <- readProcess "ldd" [self] ""
       let unresolved =
             map fst $
             filter (not . isAbsolute . snd) $
             map (\xs -> (xs !! 1, xs !! 2)) (ldd =~ "(.+) => (.+)" :: [[String]])
+          matchOutput xs =
+            map (!! 1) (xs =~ " => (.*) \\(0x[0-9a-f]+\\)" :: [[String]])
           libs =
-            filter (\x -> not $ any (`isInfixOf` x) ["libc.so", "libpthread.so"]) $
-            map (!! 1) (ldd =~ " => (.*) \\(0x[0-9a-f]+\\)" :: [[String]])
+            filter
+              (\x -> not $ any (`isInfixOf` x) ["libc.so", "libpthread.so"])
+              (matchOutput ldd) ++
+            -- Guarantee that libHSjarify is part of libs set.
+            filter
+              ("libHSjarify" `isInfixOf`)
+              (matchOutput selfldd)
       unless (null unresolved) $
         fail $
           "Unresolved libraries in " ++
