@@ -20,6 +20,7 @@ main = defaultMainWithHooks simpleUserHooks
 
 configurePatchElf verbosity = do
     print "################################################################################ patchelf"
+    error
     withCurrentDirectory "vendor/patchelf" $
       rawSystemExit verbosity "./bootstrap.sh" []
     cwd <- getCurrentDirectory
@@ -32,6 +33,7 @@ configurePatchElf verbosity = do
 
 buildJavaSource verbosity = do
     print "################################################################################ gradle"
+    error
     rawSystemExit
       verbosity
       "gradle"
@@ -39,5 +41,6 @@ buildJavaSource verbosity = do
 
 buildPatchElf verbosity = do
     print "############################################################################# build patchelf"
+    error
     withCurrentDirectory "build/src/patchelf" $
       rawSystemExit verbosity "make" ["install"]
