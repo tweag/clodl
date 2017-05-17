@@ -23,9 +23,6 @@ extern int main(int argc, char *argv[]) __attribute__((weak));
 
 static int jarify_argc = 1;
 static char** jarify_argv = (char*[]){ "jarify-worker", NULL };
-// static int jarify_argc = 4;
-// static char* jarify_argv[] =
-//     (char*[]){ "jarify-dummy", "+RTS", "-A1G", "-H1G", NULL };
 
 JNIEXPORT void JNICALL Java_io_tweag_jarify_HaskellLibraryLoader_initializeHaskell
 (JNIEnv *env, jclass klass)
