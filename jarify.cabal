@@ -32,6 +32,13 @@ source-repository head
   type:     git
   location: https://github.com/tweag/jarify
 
+custom-setup
+  setup-depends:
+    base >= 4.8,
+    Cabal >= 1.24,
+    directory >= 1.3,
+    filepath >= 1.4
+
 library
   include-dirs: cbits
   c-sources: cbits/bootstrap.c
