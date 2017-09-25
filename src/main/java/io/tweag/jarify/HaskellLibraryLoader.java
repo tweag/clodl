@@ -63,7 +63,7 @@ public class HaskellLibraryLoader {
 	    // not depend on it, then call its init function.
 	    Files.newDirectoryStream(jarifyAppTmpDir, "libHSjarify*.so")
 		.forEach((path) -> System.load(path.toString()));
-	    initializeHaskell();
+	    initializeHaskell("jarify-app", null);
 	} finally {
 	    // Delete the app binary and its libraries, now that they are loaded.
 	    for (Path p : pathsList)
@@ -72,5 +72,5 @@ public class HaskellLibraryLoader {
 	jarifyAppTmpDir.toFile().delete();
     }
 
-    private static native void initializeHaskell();
+    private static native void initializeHaskell(String appName, String[] args);
 }
