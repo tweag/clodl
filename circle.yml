@@ -1,0 +1,26 @@
+machine:
+  environment:
+    PATH: ~/.local/bin:$PATH
+  services:
+  - docker
+
+checkout:
+  post:
+  - git submodule update --recursive --init
+
+dependencies:
+  cache_directories:
+  - "~/.stack"
+
+  override:
+  - mkdir -p ~/.local/bin
+  - curl -L --retry 3 https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - docker build -t jarify .
+  - stack --no-terminal --docker --docker-image jarify build --only-snapshot --prefetch
+
+test:
+  override:
+  - stack --no-terminal --docker --docker-image jarify build --pedantic
+  # Test that packaging at least one example works fine.
+  - stack --no-terminal --docker --docker-image jarify exec jarify hello
+  - java -jar hello.jar
