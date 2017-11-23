@@ -1,6 +1,6 @@
 # JARify: transmutation of native binaries into JVM apps
 
-[![wercker status](https://app.wercker.com/status/fcbfc0194c84bbd251611ebb7e383b36/s/master "wercker status")](https://app.wercker.com/project/byKey/fcbfc0194c84bbd251611ebb7e383b36)
+[![CircleCI](https://circleci.com/gh/tweag/jarify.svg?style=svg)](https://circleci.com/gh/tweag/jarify)
 
 Give `jarify` a dynamically linked executable `launch-missiles`, out
 comes a standalone JVM application `launch-missiles.jar`. You can run
