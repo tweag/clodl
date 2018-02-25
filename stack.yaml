@@ -1,9 +1,11 @@
-resolver: lts-9.5
+require-stack-version: ">= 1.6"
+
+resolver: lts-10.1
 
 packages:
 - .
 - tests/hello
 
 nix:
-  # Requires Stack >= 1.2.
   shell-file: shell.nix
+  path: ["nixpkgs=./nixpkgs.nix"]
