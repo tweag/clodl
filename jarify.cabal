@@ -40,14 +40,14 @@ custom-setup
     filepath >= 1.4
 
 library
-  include-dirs: cbits
-  c-sources: cbits/bootstrap.c
+  c-sources: src/main/cc/bootstrap.c
   cc-options: -Wall -Werror
   build-depends: base >=4.8 && <5
   default-language: Haskell2010
 
 executable jarify
   main-is: Jarify.hs
+  hs-source-dirs: src/main/haskell
   build-depends:
     base >= 4.8 && < 5,
     bytestring >= 0.10,
