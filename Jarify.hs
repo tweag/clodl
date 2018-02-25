@@ -15,7 +15,6 @@ import Control.Monad (unless)
 import Data.Text (pack, strip, unpack)
 import Data.List (intercalate, isInfixOf)
 import qualified Data.ByteString.Lazy as BS
-import Paths_jarify
 import System.Directory (copyFile, doesFileExist)
 import System.Environment (getArgs, getExecutablePath)
 import System.FilePath ((</>), (<.>), isAbsolute, takeBaseName, takeFileName)
@@ -31,9 +30,8 @@ stripString = unpack . strip . pack
 -- | Add @$ORIGIN@ to RPATH and dependency on @libHSjarify.so@.
 patchElf :: FilePath -> IO ()
 patchElf exe = do
-    dyndir <- getDynLibDir
     rpath <- readProcess "patchelf" ["--print-rpath", exe] ""
-    let newrpath = intercalate ":" ["$ORIGIN", dyndir, rpath]
+    let newrpath = intercalate ":" ["$ORIGIN", rpath]
     callProcess "patchelf" ["--set-rpath", newrpath, exe]
 
 doPackage :: FilePath -> FilePath -> IO ()
@@ -91,8 +89,4 @@ main = do
     argv <- getArgs
     case argv of
       ["--base-jar", baseJar, path] -> doPackage baseJar path
-      [path] -> do
-        dir <- getDataDir
-        -- Use executables' base jar by default.
-        doPackage (dir </> "build/libs/stub.jar") path
-      _ -> fail "Usage: jarify [--base-jar FILE] <command>"
+      _ -> fail "Usage: jarify --base-jar <file> <command>"

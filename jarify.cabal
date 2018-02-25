@@ -48,7 +48,6 @@ library
 
 executable jarify
   main-is: Jarify.hs
-  other-modules: Paths_jarify
   build-depends:
     base >= 4.8 && < 5,
     bytestring >= 0.10,
