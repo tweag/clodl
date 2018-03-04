@@ -64,8 +64,9 @@ public class HaskellLibraryLoader {
 
 	    // Ensure libHSjarify is loaded, since the app may or may
 	    // not depend on it, then call its init function.
-	    Files.newDirectoryStream(jarifyAppTmpDir, "libHSjarify*.so")
-		.forEach((path) -> System.load(path.toString()));
+	    try (DirectoryStream<Path> stream = Files.newDirectoryStream(jarifyAppTmpDir, "libHSjarify*.so")) {
+		stream.forEach((path) -> System.load(path.toString()));
+	    }
 	    initializeHaskell("jarify-app", null);
 	} finally {
 	    // Delete the app binary and its libraries, now that they are loaded.
