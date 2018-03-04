@@ -41,7 +41,7 @@ stripString = unpack . strip . pack
 patchElf :: FilePath -> IO ()
 patchElf exe = do
     rpath <- readProcess "patchelf" ["--print-rpath", exe] ""
-    let newrpath = intercalate ":" ["$ORIGIN", rpath]
+    let newrpath = intercalate ":" ["$ORIGIN", stripString rpath]
     callProcess "patchelf" ["--set-rpath", newrpath, exe]
 
 doPackage :: FilePath -> FilePath -> IO ()
