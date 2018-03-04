@@ -16,14 +16,18 @@ import Data.Text (pack, strip, unpack)
 import Data.List (intercalate, isInfixOf)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as SBS
-import System.Directory (copyFile, doesFileExist)
+import System.Directory
+  ( canonicalizePath
+  , copyFile
+  , getCurrentDirectory
+  )
 import System.Environment (getArgs, getExecutablePath)
-import System.FilePath ((</>), (<.>), isAbsolute, takeBaseName, takeFileName)
+import System.FilePath ((</>), (<.>), isAbsolute, takeFileName)
 import System.Exit (ExitCode(..))
 import System.Info (os)
 import System.IO (hPutStrLn, stderr)
 import System.IO.Temp (withSystemTempFile, withSystemTempDirectory)
-import System.Posix.Files (createSymbolicLink)
+import System.Posix.Files (createSymbolicLink, ownerModes, setFileMode)
 import System.Process
   ( CreateProcess(..)
   , callProcess
@@ -42,16 +46,14 @@ patchElf :: FilePath -> IO ()
 patchElf exe = do
     rpath <- readProcess "patchelf" ["--print-rpath", exe] ""
     let newrpath = intercalate ":" ["$ORIGIN", stripString rpath]
-    callProcess "patchelf" ["--set-rpath", newrpath, exe]
+    callProcess "../org_nixos_patchelf/patchelf" ["--set-rpath", newrpath, exe]
 
 doPackage :: FilePath -> FilePath -> IO ()
-doPackage baseJar cmd = do
+doPackage baseJar cmdpath = do
     jarbytes <- LBS.readFile baseJar
-    cmdpath <- doesFileExist cmd >>= \case
-      False -> stripString <$> readProcess "which" [cmd] ""
-      True -> return cmd
     (hsapp, libs) <- withSystemTempFile "hsapp" $ \tmp _ -> do
       copyFile cmdpath tmp
+      setFileMode tmp ownerModes
       patchElf tmp
       ldd <- case os of
         "darwin" -> do
@@ -95,7 +97,7 @@ doPackage baseJar cmd = do
           fromArchive $
           foldr addEntryToArchive emptyArchive (cmdentry : libentries)
         newjarbytes = fromArchive $ addEntryToArchive appzip (toArchive jarbytes)
-    LBS.writeFile ("." </> takeBaseName cmd <.> "jar") newjarbytes
+    LBS.writeFile ("/tmp/" </> cmdpath <.> "jar") newjarbytes
   where
     mkEntry file = toEntry (takeFileName file) 0 <$> LBS.readFile file
 
@@ -103,16 +105,19 @@ doPackage baseJar cmd = do
 -- This removes the need to fiddle with the rpaths of the various libraries
 -- and the application executable.
 makeHsTopLibrary :: FilePath -> [FilePath] -> IO LBS.ByteString
-makeHsTopLibrary hsapp libs = withSystemTempDirectory "libhsapp" $ \d -> do
-    let f = d </> "libhsapp.so"
-    createSymbolicLink hsapp (d </> "hsapp")
-    -- Changing the directory is necessary for gcc to link hsapp with a
-    -- relative path. "-L d -l:hsapp" doesn't work in centos 6 where the
-    -- path to hsapp in the output library ends up being absolute.
-    callProcessCwd d "gcc" $
-      [ "-shared", "-Wl,-z,origin", "-Wl,-rpath=$ORIGIN", "hsapp"
-      , "-o", f] ++ libs
-    LBS.fromStrict <$> SBS.readFile f
+makeHsTopLibrary hsapp libs = do
+    workspace <- getCurrentDirectory
+    withSystemTempDirectory "libhsapp" $ \d -> do
+      let f = d </> "libhsapp.so"
+      abspath <- canonicalizePath hsapp
+      createSymbolicLink abspath (d </> "hsapp")
+      -- Changing the directory is necessary for gcc to link hsapp with
+      -- a relative path. "-L d -l:hsapp" doesn't work in centos 6 where the
+      -- path to hsapp in the output library ends up being absolute.
+      callProcessCwd d (workspace </> "../gcc/nix/bin/gcc") $
+        [ "-shared", "-Wl,-z,origin", "-Wl,-rpath=$ORIGIN", "hsapp"
+        , "-o", f] ++ libs
+      LBS.fromStrict <$> SBS.readFile f
 
 -- This is a variant of 'callProcess' which takes a working directory.
 callProcessCwd :: FilePath -> FilePath -> [String] -> IO ()

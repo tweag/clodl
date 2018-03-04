@@ -22,6 +22,4 @@ cabal.sandbox.config
 *.prof
 *.aux
 *.hp
-.stack-work
-.gradle
-build
+bazel-*
