@@ -1,4 +1,4 @@
-# JARify: transmutation of native binaries into JVM apps
+# dlclos: self-contained dynamic libraries
 
 [![wercker status](https://app.wercker.com/status/fcbfc0194c84bbd251611ebb7e383b36/s/master "wercker status")](https://app.wercker.com/project/byKey/fcbfc0194c84bbd251611ebb7e383b36)
 

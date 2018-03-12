@@ -20,9 +20,9 @@ public class HaskellLibraryLoader {
 	try {
 	    InputStream in =
 		HaskellLibraryLoader.class.getResourceAsStream("/jarify-app.zip");
-	    File jarifyAppZipFile =
-		File.createTempFile("jarify-app-", ".zip");
-	    Files.copy(in, jarifyAppZipFile.toPath(),
+	    File jarifyAppZipFile = File.createTempFile("jarify-app-", ".zip");
+	    Files.copy(in,
+		       jarifyAppZipFile.toPath(),
 		       StandardCopyOption.REPLACE_EXISTING);
 	    in.close();
 	    try {

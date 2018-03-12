@@ -1,4 +1,4 @@
-workspace(name = "io_tweag_jarify")
+workspace(name = "io_tweag_clodl")
 
 http_archive(
   name = "io_tweag_rules_haskell",
@@ -11,8 +11,8 @@ haskell_repositories()
 
 http_archive(
   name = "io_tweag_rules_nixpkgs",
-  strip_prefix = "rules_nixpkgs-0.1.1",
-  urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.1.1.tar.gz"],
+  strip_prefix = "rules_nixpkgs-0.2",
+  urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.2.tar.gz"],
 )
 
 new_http_archive(
@@ -65,13 +65,13 @@ package(default_visibility = [ "//visibility:public" ])
 
 filegroup(
   name = "bin",
-  srcs = glob(["nix/bin/*"]),
+  srcs = glob(["bin/*"]),
 )
 
 cc_library(
   name = "include",
-  hdrs = glob(["nix/lib/ghc-*/include/**/*.h"]),
-  strip_include_prefix = glob(["nix/lib/ghc-*/include"], exclude_directories=0)[0],
+  hdrs = glob(["lib/ghc-*/include/**/*.h"]),
+  strip_include_prefix = glob(["lib/ghc-*/include"], exclude_directories=0)[0],
 )
 """
 )
