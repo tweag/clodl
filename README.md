@@ -1,61 +1,75 @@
-# dlclos: self-contained dynamic libraries
+# clodl: self-contained dynamic libraries
 
-Give `jarify` a dynamically linked executable `launch-missiles`, out
-comes a standalone JVM application `launch-missiles.jar`. You can run
-it with
+`clodl` computes the *closure* of a shared object. That is, given
+a shared library or a position independent executable (PIE), it
+returns a single, self-contained file packing all dependencies. Think
+of the result as a poor man's container image. Compared to containers:
+
+* closures **do not** provide isolation (e.g. separate process,
+  network, filesystem namespaces),
+* but closures **do** allow for loading into the same address space as
+  an existing process.
+  
+Executing a closure in the address space of an existing process
+enables lightweight high-speed interop between the closure and the
+rest of the process. The closure can natively invoke any function in
+the process without marshalling/unmarshalling any arguments, and vice
+versa.
+
+`clodl` is useful for "jarifying" native binaries. Provided shim Java
+code, closures can be packed inside a JAR and then loaded at runtime
+into the JVM. This makes JAR's an alternative packaging format to
+publish and deploy native binaries.
+
+## Example
+
+`clodl` is implemented as a set
+of [Bazel][bazel] [build rules][bazel-rules]. It integrates with your
+Bazel build system, e.g. as follows:
 
 ```
-$ java -jar launch-missiles.jar
+cc_binary(
+  name = "hello.so",
+  srcs = ["*.c"],
+  linkedshared = 1,
+)
+
+library_closure(
+  name = "hello-closure",
+  srcs = ["hello.so"],
+  testonly = True,
+)
+
+java_binary(
+  name = "hello-jar",
+  resources = [":hello-closure"],
+  main_class = ...,
+  srcs = ...,
+  runtime_deps = ...,
+)
 ```
 
-The resulting JAR does not fork `launch-missiles` in a separate
-process when run. It is dynamically loaded into the same address space
-as the JVM spawned by `java` and can therefore call into the JVM (e.g.
-using the [JNI][jni]).
-
-[jni]: https://docs.oracle.com/javase/8/docs/technotes/guides/jni/spec/jniTOC.html
+[bazel]: https://bazel.build
+[bazel-rules]: https://docs.bazel.build/versions/master/skylark/rules.html
 
 ## Building it
 
 **Requirements:**
-* the [Stack][stack] build tool (version 1.2 or above);
-* either, the [Nix][nix] package manager,
-* or, OpenJDK and Gradle installed globally on your system.
+* The [Bazel][bazel] build tool;
+* the [Nix][nix] package manager.
 
-To build and copy `jarify` to `~/.local/bin`:
+To build and test:
 
 ```
-$ stack build --copy-bins
+$ bazel test //...
 ```
 
-You can optionally get Stack to download a JDK in a local sandbox
-(using [Nix][nix]) for good build results reproducibility. **This is
-the recommended way to build jarify.** Alternatively, you'll need
-it installed through your OS distribution's package manager for the
-next steps (and you'll need to tell Stack how to find the JVM header
-files and shared libraries).
-
-To use Nix, set the following in your `~/.stack/config.yaml` (or pass
-`--nix` to all Stack commands, see the [Stack manual][stack-nix] for
-more):
-
-```yaml
-nix:
-  enable: true
-```
-
-[stack]: https://github.com/commercialhaskell/stack
-[stack-nix]: https://docs.haskellstack.org/en/stable/nix_integration/#configuration
-[nix]: http://nixos.org/nix
+[nix]: https://nixos.org/nix
 
 ## Usage
 
-Any [position independent][wp-pic] (dynamically linked) executable
-(PIE) can be transmutated in this way:
-
-```
-$ jarify <FILE>
-```
+Any shared library (`.so` file) or [position independent][wp-pic]
+(dynamically linked) executable (PIE) can be "closed" using `clodl`.
 
 On OS X, all executables are PIE.
 
@@ -74,18 +88,18 @@ Some distributions create position independent executables by default
 
 ## License
 
-Copyright (c) 2015-2017 EURL Tweag.
+Copyright (c) 2015-2018 EURL Tweag.
 
 All rights reserved.
 
-jarify is free software, and may be redistributed under the terms
+clodl is free software, and may be redistributed under the terms
 specified in the [LICENSE](LICENSE) file.
 
 ## About
 
 ![Tweag I/O](http://i.imgur.com/0HK8X4y.png)
 
-jarify is maintained by [Tweag I/O](http://tweag.io/).
+clodl is maintained by [Tweag I/O](http://tweag.io/).
 
 Have questions? Need help? Tweet at
 [@tweagio](http://twitter.com/tweagio).
