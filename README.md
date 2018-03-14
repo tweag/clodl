@@ -74,11 +74,10 @@ Any shared library (`.so` file) or [position independent][wp-pic]
 On OS X, all executables are PIE.
 
 To create a PIE on Linux and other platforms, pass the `-pie` flag to
-the linker. Currently, we furthermore require "origin processing" to
-be turned on. Here is the full set of options to pass to `ld`:
+the compiler. For example with GCC,
 
 ```
-$ gcc -pie -Wl,-z,origin -Wl,-rpath,$ORIGIN ...
+$ gcc -pie ...
 ```
 
 Some distributions create position independent executables by default
