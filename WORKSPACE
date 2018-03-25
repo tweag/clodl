@@ -11,8 +11,8 @@ haskell_repositories()
 
 http_archive(
   name = "io_tweag_rules_nixpkgs",
-  strip_prefix = "rules_nixpkgs-0.2",
-  urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.2.tar.gz"],
+  strip_prefix = "rules_nixpkgs-0.2.1",
+  urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.2.1.tar.gz"],
 )
 
 new_http_archive(
@@ -91,8 +91,8 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
   name = "include",
-  hdrs = glob(["nix/include/*.h"]),
-  strip_include_prefix = "nix/include",
+  hdrs = glob(["include/*.h"]),
+  strip_include_prefix = "include",
 )
 """
 )
