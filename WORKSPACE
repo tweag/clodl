@@ -2,8 +2,8 @@ workspace(name = "io_tweag_clodl")
 
 http_archive(
   name = "io_tweag_rules_haskell",
-  strip_prefix = "rules_haskell-078fa0b7c557262571a2b25da34a0a0b375299e3",
-  urls = ["https://github.com/tweag/rules_haskell/archive/078fa0b7c557262571a2b25da34a0a0b375299e3.tar.gz"],
+  strip_prefix = "rules_haskell-413a76b6ec8a116225e395425248ba8c9cd5fec1",
+  urls = ["https://github.com/tweag/rules_haskell/archive/413a76b6ec8a116225e395425248ba8c9cd5fec1.tar.gz"],
 )
 
 load("@io_tweag_rules_haskell//haskell:repositories.bzl", "haskell_repositories")

@@ -19,7 +19,7 @@ public class HaskellLibraryLoader {
     public static void loadLibraries() {
 	try {
 	    InputStream in =
-		HaskellLibraryLoader.class.getResourceAsStream("/jarify-app.zip");
+		HaskellLibraryLoader.class.getResourceAsStream("/clotest.zip");
 	    File jarifyAppZipFile = File.createTempFile("jarify-app-", ".zip");
 	    Files.copy(in,
 		       jarifyAppZipFile.toPath(),
@@ -29,7 +29,7 @@ public class HaskellLibraryLoader {
                 if (System.getProperty("os.name").startsWith("Mac "))
 		    loadApplication(jarifyAppZipFile, "hsapp");
 		else
-		    loadApplication(jarifyAppZipFile, "libhsapp.so");
+		    loadApplication(jarifyAppZipFile, "clotest_wrapper");
 	    } finally {
 		jarifyAppZipFile.delete();
 	    }
