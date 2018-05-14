@@ -3,7 +3,7 @@ package(default_visibility = ["//visibility:public"])
 load(
   "@io_tweag_rules_haskell//haskell:haskell.bzl",
   "haskell_test",
-  "haskell_library",
+  "haskell_binary",
   "haskell_toolchain",
   "cc_haskell_import",
 )
@@ -23,20 +23,22 @@ cc_library(
   name = "bootstrap",
   srcs = ["src/main/cc/bootstrap.c"],
   deps = ["@ghc//:include", "@openjdk//:include"],
+  copts = ["-std=c99"],
 )
 
 java_library(
   name = "base-jar",
-  srcs = glob(["src/main/java/**"]),
+  srcs = glob(["src/main/java/**/*.java"]),
 )
 
 # TODO should be haskell_binary. Blocked on
 # https://github.com/tweag/rules_haskell/issues/179.
-haskell_library(
+haskell_binary(
   name = "hello-hs",
   src_strip_prefix = "src/test/haskell/hello",
   srcs = ["src/test/haskell/hello/Main.hs"],
-  compiler_flags = ["-dynamic", "-pie"],
+  compiler_flags = ["-threaded", "-dynamic", "-pie"],
+  deps = [":bootstrap"],
   prebuilt_dependencies = ["base"],
   testonly = True,
 )
