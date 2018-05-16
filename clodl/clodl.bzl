@@ -2,6 +2,7 @@
 
 load("@bazel_skylib//:lib.bzl", "paths")
 
+
 def _impl_shared_lib_paths(ctx):
   """Collects the list of shared library paths of an executable or library."""
   libs_file = ctx.actions.declare_file(ctx.label.name + ".txt")
@@ -36,6 +37,7 @@ def _impl_shared_lib_paths(ctx):
 
   return DefaultInfo(files=depset([libs_file]))
 
+
 _shared_lib_paths = rule(
   implementation = _impl_shared_lib_paths,
   attrs = { "srcs": attr.label_list() },
@@ -55,6 +57,7 @@ Example:
   The output is shared-libs.txt.
 """
 
+
 def _mangle_solib_dir(name):
   """
     Creates a unique directory name from the repo name and package name of the
@@ -64,6 +67,7 @@ def _mangle_solib_dir(name):
   components = [c.replace('@','') for c in components]
   components = [c for c in components if c]
   return '/'.join(components).replace('_', '_U').replace('/', '_S') + "_solib"
+
 
 def _impl_expose_runfiles(ctx):
   """Produces as output all the files needed to load an executable or library."""
@@ -104,6 +108,7 @@ def _impl_expose_runfiles(ctx):
 
   return DefaultInfo(files=depset(libs))
 
+
 _expose_runfiles = rule(
   implementation = _impl_expose_runfiles,
   attrs = { "deps": attr.label_list(),
@@ -125,6 +130,7 @@ Example:
   a new directory or bazel will complain of conflicts with the rules that
   initially created the runfiles.
 """
+
 
 def library_closure(name, srcs, **kwargs):
   """
