@@ -149,11 +149,20 @@ def library_closure(name, srcs, **kwargs):
   dirs_file = "%s-search_dirs.ld" % name
   wrapper_lib = "%s_wrapper" % name
   solibdir = _mangle_solib_dir(name)
+
+  # Get the paths of srcs dependencies.
   _shared_lib_paths(
     name = libs_file,
     srcs = srcs,
     **kwargs
   )
+  # Produce the arguments for linking the wrapper library
+  # We produce two files:
+  # * params_file contains the dependencies names, and
+  # * dirs_file contains the paths in which to look for dependencies.
+  #
+  # The linker fails with an obscure error if the contents of both files
+  # are put into one.
   native.genrule(
     name = "%s_params_file" % name,
     srcs = [libs_file],
@@ -175,6 +184,7 @@ def library_closure(name, srcs, **kwargs):
     outs = [param_file, dirs_file],
     **kwargs
   )
+  # Expose the runfiles for linking the wrapper library.
   _expose_runfiles(
     name = runfiles,
     deps = srcs,
