@@ -23,8 +23,6 @@ def _impl_shared_lib_paths(ctx):
       libs_file="$2"
 
       # find the list of libraries with ldd
-      tmpdir=$(mktemp -d)
-      tmplibs_file=$(mktemp tmp-libs.XXXXXXXXXX)
       ldd $tops \
         | grep '=>' \
         | grep -v 'linux-vdso.so' \
@@ -32,7 +30,7 @@ def _impl_shared_lib_paths(ctx):
         | sort \
         | uniq > $libs_file
       # Fail if any there are any missing libraries
-      ! grep 'not found' $tmplibs_file
+      ! grep 'not found' $libs_file
     """
   )
 
