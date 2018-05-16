@@ -30,8 +30,11 @@ def _impl_shared_lib_paths(ctx):
         | sed "s/^.* => \\(.*\\) (0x[0-9a-f]*)/\\1/" \
         | sort \
         | uniq > $libs_file
-      # Fail if any there are any missing libraries
-      ! grep 'not found' $libs_file
+      # Fail if there are any missing libraries
+      if grep 'not found' $libs_file
+      then
+        exit 1
+      fi
     """
   )
 
