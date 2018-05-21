@@ -135,20 +135,27 @@ Example:
 """
 
 
-def library_closure(name, srcs, **kwargs):
+def library_closure(name, srcs, excludes = [], **kwargs):
   """
   Produces a zip file containing a closure of all the shared libraries needed
   to load the given shared libraries.
+
+  Args:
+    name: A unique name for this rule.
+    srcs: Libraries whose dependencies need to be included.
+    excludes: Names of library files that need to be excluded.
 
   Example:
     ```bzl
     library_closure(
         name = "closure"
         srcs = [":lib1", ":lib2"]
+        excludes = ["libexclude_this.so", "libthis_too.so"]
         ...
     )
     ```
-    The file closure.zip is created.
+    The file closure.zip is created, with all the shared libraries required by
+    ":lib1" and ":lib2" except those in excludes.
   """
   libs_file = "%s-libs" % name
   runfiles = "%s-runfiles" % name
@@ -220,16 +227,23 @@ def library_closure(name, srcs, **kwargs):
     name = name,
     srcs = [libs_file, wrapper_lib, runfiles],
     cmd = """
+    libs_file="$(location %s)"
+    excludes="%s"
     tmpdir=$$(mktemp -d)
+    # Produce a file with regexes to exclude libs from the zip.
+    tmpx_file=$$(mktemp tmpexcludes_file.XXXX)
+    # Note: quotes are important in shell expansion to preserve newlines.
+    echo "$$excludes" | sed "s/\\(.*\\)/^(.*\\/)?\\1$$/" > $$tmpx_file
+
     # We might fail to copy some paths in the libs_file
     # which might be files in the runfiles and are copied next.
     # TODO: we can make cp succeed if we implement this rule with
     # a custom rule instead of a genrule.
-    cp $$(cat $(location %s)) $$tmpdir || true
-    cp $(SRCS) $$tmpdir
+    cp $$(cat $$libs_file | grep -Evf $$tmpx_file) $$tmpdir || true
+    cp $$(echo -n $(SRCS) | xargs -L 1 -d ' ' | grep -Evf $$tmpx_file) $$tmpdir
     zip -qjr $@ $$tmpdir
-    rm -rf $$tmpdir
-    """ % libs_file,
+    rm -rf $$tmpdir $$tmpx_file
+    """ % (libs_file, '\n'.join(excludes)),
     outs = ["%s.zip" % name],
     **kwargs
   )
