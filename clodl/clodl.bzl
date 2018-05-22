@@ -152,7 +152,7 @@ def library_closure(name, srcs, excludes = [], **kwargs):
     library_closure(
         name = "closure"
         srcs = [":lib1", ":lib2"]
-        excludes = ["libexclude_this.so", "libthis_too.so"]
+        excludes = ["libexclude_this\.so", "libthis_too\.so"]
         ...
     )
     ```

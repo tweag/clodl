@@ -53,12 +53,12 @@ library_closure(
   name = "clotest",
   srcs = ["hello-cc"],
   excludes = [
-    "ld-linux-x86-64.so.*",
-    "libgcc_s.so.*",
-    "libc.so.*",
-    "libdl.so.*",
-    "libm.so.*",
-    "libpthread.so.*",
+    "ld-linux-x86-64\.so.*",
+    "libgcc_s\.so.*",
+    "libc\.so.*",
+    "libdl\.so.*",
+    "libm\.so.*",
+    "libpthread\.so.*",
   ],
   testonly = True,
 )
