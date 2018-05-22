@@ -143,7 +143,9 @@ def library_closure(name, srcs, excludes = [], **kwargs):
   Args:
     name: A unique name for this rule.
     srcs: Libraries whose dependencies need to be included.
-    excludes: Names of library files that need to be excluded.
+    excludes: Patterns matching the names of libraries that should be excluded
+              from the closure. Extended regular expresions as provided by grep
+              can be used here.
 
   Example:
     ```bzl
