@@ -24,7 +24,7 @@ def _impl_rename_as_solib(ctx):
         """.format(
         target = f.path,
         link = symlink.path,
-        out_dir = paths.join(ctx.bin_dir.path, ctx.attr.outputdir),
+        out_dir = symlink.dirname,
       ),
     )
 
@@ -130,21 +130,23 @@ def _impl_expose_runfiles(ctx):
   """Produces as output all the files needed to load an executable or library."""
   outputdir = ctx.attr.outputdir
 
-  runfiles = depset()
-  libs = []
+  output_libs = {}
+  input_libs = {}
   for dep in ctx.attr.deps:
-    runfiles = depset(transitive=[dep.default_runfiles.files, runfiles])
     for lib in dep.default_runfiles.files:
       # Skip non-library files.
       if lib.basename.endswith(".so") or lib.basename.find(".so.") != -1:
-        libs.append(ctx.actions.declare_file(paths.join(outputdir, lib.basename)))
+        input_libs[lib.basename] = lib
+        output_libs[lib.basename] = ctx.actions.declare_file(paths.join(outputdir, lib.basename))
 
+  input_libs_files = input_libs.values()
+  output_libs_files = output_libs.values()
   args = ctx.actions.args();
-  args.add(paths.join(ctx.bin_dir.path, outputdir))
-  args.add_joined(runfiles, join_with=" ")
+  args.add(output_libs_files[0].dirname if len(input_libs) > 0 else outputdir)
+  args.add_joined(input_libs_files, join_with=" ")
   ctx.actions.run_shell(
-    outputs = libs,
-    inputs = depset(transitive=[runfiles]),
+    outputs = output_libs_files,
+    inputs = input_libs_files,
     arguments = [args],
     command = """
       set -e
@@ -159,7 +161,7 @@ def _impl_expose_runfiles(ctx):
     """
   )
 
-  return DefaultInfo(files=depset(libs))
+  return DefaultInfo(files=depset(output_libs_files))
 
 
 _expose_runfiles = rule(
