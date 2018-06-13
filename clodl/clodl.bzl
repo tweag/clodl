@@ -64,7 +64,7 @@ def _impl_shared_lib_paths(ctx):
   runfiles = depset()
   for src in ctx.attr.srcs:
     files = depset(transitive=[src.files, files])
-    runfiles = depset(transitive=[src.default_runfiles.files + src.data_runfiles.files, runfiles])
+    runfiles = depset(transitive=[src.default_runfiles.files, runfiles])
   args = ctx.actions.args();
   args.add_joined(files, join_with=" ")
   args.add(libs_file)
