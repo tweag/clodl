@@ -5,7 +5,6 @@ load(
   "haskell_test",
   "haskell_binary",
   "haskell_toolchain",
-  "cc_haskell_import",
 )
 
 load(
@@ -43,15 +42,9 @@ haskell_binary(
   testonly = True,
 )
 
-cc_haskell_import(
-  name ="hello-cc",
-  dep = ":hello-hs",
-  testonly = True,
-)
-
 library_closure(
   name = "clotest",
-  srcs = ["hello-cc"],
+  srcs = ["hello-hs"],
   excludes = [
     "ld-linux-x86-64\.so.*",
     "libgcc_s\.so.*",

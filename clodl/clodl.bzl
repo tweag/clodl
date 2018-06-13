@@ -3,6 +3,60 @@
 load("@bazel_skylib//:lib.bzl", "paths")
 
 
+def _impl_rename_as_solib(ctx): 
+  """Renames files as libraries."""
+ 
+  output_files = []
+  for f in ctx.files.deps:
+    if f.basename.endswith(".so") or f.basename.find(".so.") != -1:
+      symlink = ctx.actions.declare_file(paths.join(ctx.attr.outputdir, f.basename))
+    else:
+      symlink = ctx.actions.declare_file(paths.join(ctx.attr.outputdir, "lib%s.so" % f.basename))
+    output_files.append(symlink)
+    ctx.actions.run_shell(
+      inputs = depset([f]),
+      outputs = [symlink],
+      mnemonic = "Symlink",
+      command = """
+        set -e
+        mkdir -p {out_dir}
+        ln -s $(realpath {target}) {link}
+        """.format(
+        target = f.path,
+        link = symlink.path,
+        out_dir = paths.join(ctx.bin_dir.path, ctx.attr.outputdir),
+      ),
+    )
+
+  return DefaultInfo(files = depset(output_files))
+
+
+_rename_as_solib = rule(
+  implementation = _impl_rename_as_solib,
+  attrs = { "deps": attr.label_list(),
+            "outputdir" : attr.string(doc="Where the outputs are placed.", mandatory=True),
+          },
+)
+"""
+Renames files as shared libraries to make them suitable for linking with cc_binary.
+This is useful for linking executables built with -pie.
+
+Example:
+  ```bzl
+  _rename_as_solib(
+      name = "some_binary"
+      dep = [":lib"]
+      outputdir = "dir"
+  )
+  ```
+  If some_binary has files a.so and b, the outputs are dir/a.so and dir/b.so.
+  The outputs need to be placed in a new directory or bazel will complain of conflicts
+  with the rules that initially created the runfiles.
+
+  Note: Runfiles are not propagated.
+"""
+
+
 def _impl_shared_lib_paths(ctx):
   """Collects the list of shared library paths of an executable or library."""
   libs_file = ctx.actions.declare_file(ctx.label.name + ".txt")
@@ -10,9 +64,9 @@ def _impl_shared_lib_paths(ctx):
   runfiles = depset()
   for src in ctx.attr.srcs:
     files = depset(transitive=[src.files, files])
-    runfiles = depset(transitive=[src.default_runfiles.files, runfiles])
+    runfiles = depset(transitive=[src.default_runfiles.files + src.data_runfiles.files, runfiles])
   args = ctx.actions.args();
-  args.add(files)
+  args.add_joined(files, join_with=" ")
   args.add(libs_file)
   ctx.actions.run_shell(
     outputs = [libs_file],
@@ -74,35 +128,31 @@ def _mangle_solib_dir(name):
 
 def _impl_expose_runfiles(ctx):
   """Produces as output all the files needed to load an executable or library."""
-  files = depset()
+  outputdir = ctx.attr.outputdir
+
   runfiles = depset()
   libs = []
   for dep in ctx.attr.deps:
-    files = depset(transitive=[dep.files, files])
     runfiles = depset(transitive=[dep.default_runfiles.files, runfiles])
-    for lib in dep.default_runfiles.files + dep.files:
+    for lib in dep.default_runfiles.files:
       # Skip non-library files.
       if lib.basename.endswith(".so") or lib.basename.find(".so.") != -1:
-        libs.append(ctx.actions.declare_file(paths.join(ctx.attr.outputdir.name, lib.basename)))
-
-  outputdir = ctx.actions.declare_directory(ctx.attr.outputdir.name)
+        libs.append(ctx.actions.declare_file(paths.join(outputdir, lib.basename)))
 
   args = ctx.actions.args();
-  args.add(files)
+  args.add(paths.join(ctx.bin_dir.path, outputdir))
   args.add_joined(runfiles, join_with=" ")
-  args.add(outputdir)
   ctx.actions.run_shell(
-    outputs = libs + [outputdir],
-    inputs = depset(transitive=[runfiles, files]),
+    outputs = libs,
+    inputs = depset(transitive=[runfiles]),
     arguments = [args],
     command = """
       set -e
-      tops="$1"
+      outputdir="$1"
       runfiles="$2"
-      outputdir="$3"
 
       mkdir -p $outputdir
-      for f in $tops $runfiles
+      for f in $runfiles
       do
         ln -s $(realpath $f) $outputdir/$(basename $f)
       done
@@ -115,7 +165,7 @@ def _impl_expose_runfiles(ctx):
 _expose_runfiles = rule(
   implementation = _impl_expose_runfiles,
   attrs = { "deps": attr.label_list(),
-            "outputdir" : attr.output(doc="Where the outputs are placed.", mandatory=True),
+            "outputdir" : attr.string(doc="Where the outputs are placed.", mandatory=True),
           },
 )
 """
@@ -160,11 +210,20 @@ def library_closure(name, srcs, excludes = [], **kwargs):
     ":lib1" and ":lib2" except those in excludes.
   """
   libs_file = "%s-libs" % name
+  srclibs = "%s-as-libs" % name
   runfiles = "%s-runfiles" % name
   param_file = "%s-params.ld" % name
   dirs_file = "%s-search_dirs.ld" % name
   wrapper_lib = "%s_wrapper" % name
   solibdir = _mangle_solib_dir(name)
+
+  # Rename the inputs to solibs as expected by cc_binary.
+  _rename_as_solib(
+    name = srclibs,
+    deps = srcs,
+    outputdir = solibdir,
+    **kwargs
+  )
 
   # Get the paths of srcs dependencies.
   _shared_lib_paths(
@@ -220,14 +279,14 @@ def library_closure(name, srcs, excludes = [], **kwargs):
       param_file,
       "-T$(location %s)" % dirs_file,
     ],
-    srcs = [runfiles],
+    srcs = [runfiles, srclibs],
     deps = [param_file, dirs_file],
     **kwargs
   )
   # Copy the libraries to a folder and zip them
   native.genrule(
     name = name,
-    srcs = [libs_file, wrapper_lib, runfiles],
+    srcs = [libs_file, wrapper_lib, runfiles, srclibs],
     cmd = """
     libs_file="$(location %s)"
     excludes="%s"
