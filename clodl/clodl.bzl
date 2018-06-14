@@ -115,7 +115,7 @@ Example:
 """
 
 
-def _mangle_solib_dir(name):
+def _mangle_dir(name):
   """
     Creates a unique directory name from the repo name and package name of the
     package being evaluated, and a given name.
@@ -123,7 +123,7 @@ def _mangle_solib_dir(name):
   components = [native.repository_name(), native.package_name(), name]
   components = [c.replace('@','') for c in components]
   components = [c for c in components if c]
-  return '/'.join(components).replace('_', '_U').replace('/', '_S') + "_solib"
+  return '/'.join(components).replace('_', '_U').replace('/', '_S')
 
 
 def _impl_expose_runfiles(ctx):
@@ -187,7 +187,7 @@ Example:
 """
 
 
-def library_closure(name, srcs, excludes = [], **kwargs):
+def library_closure(name, srcs, outzip = "", excludes = [], **kwargs):
   """
   Produces a zip file containing a closure of all the shared libraries needed
   to load the given shared libraries.
@@ -195,6 +195,9 @@ def library_closure(name, srcs, excludes = [], **kwargs):
   Args:
     name: A unique name for this rule.
     srcs: Libraries whose dependencies need to be included.
+    outzip: The name of the zip file to produce. If omitted, the file is named
+            as the rule with a .zip file extension. If present, the file is
+            created inside a directory with a name generated from the rule name.
     excludes: Patterns matching the names of libraries that should be excluded
               from the closure. Extended regular expresions as provided by grep
               can be used here.
@@ -205,11 +208,13 @@ def library_closure(name, srcs, excludes = [], **kwargs):
         name = "closure"
         srcs = [":lib1", ":lib2"]
         excludes = ["libexclude_this\.so", "libthis_too\.so"]
+        outzip = "file.zip"
         ...
     )
     ```
-    The file closure.zip is created, with all the shared libraries required by
-    ":lib1" and ":lib2" except those in excludes.
+    The zip file <generated_dir>/file.zip is created, with all the
+    shared libraries required by ":lib1" and ":lib2" except those in excludes.
+    <generated_dir> is a name which depends on name.
   """
   libs_file = "%s-libs" % name
   srclibs = "%s-as-libs" % name
@@ -217,7 +222,13 @@ def library_closure(name, srcs, excludes = [], **kwargs):
   param_file = "%s-params.ld" % name
   dirs_file = "%s-search_dirs.ld" % name
   wrapper_lib = "%s_wrapper" % name
-  solibdir = _mangle_solib_dir(name)
+  solibdir = _mangle_dir(name + "_solib")
+  if outzip == "":
+    outputdir = "."
+    outzip = "%s.zip" % name
+  else:
+    outputdir = _mangle_dir(name)
+    outzip = paths.join(outputdir, outzip)
 
   # Rename the inputs to solibs as expected by cc_binary.
   _rename_as_solib(
@@ -291,6 +302,7 @@ def library_closure(name, srcs, excludes = [], **kwargs):
     srcs = [libs_file, wrapper_lib, runfiles, srclibs],
     cmd = """
     libs_file="$(location %s)"
+    outputdir="%s"
     excludes="%s"
     tmpdir=$$(mktemp -d)
     # Produce a file with regexes to exclude libs from the zip.
@@ -304,9 +316,11 @@ def library_closure(name, srcs, excludes = [], **kwargs):
     # a custom rule instead of a genrule.
     cp $$(cat $$libs_file | grep -Evf $$tmpx_file) $$tmpdir || true
     cp $$(echo -n $(SRCS) | xargs -L 1 -d ' ' | grep -Evf $$tmpx_file) $$tmpdir
+    
+    mkdir -p "$$outputdir"
     zip -qjr $@ $$tmpdir
     rm -rf $$tmpdir $$tmpx_file
-    """ % (libs_file, '\n'.join(excludes)),
-    outs = ["%s.zip" % name],
+    """ % (libs_file, outputdir, '\n'.join(excludes)),
+    outs = [outzip],
     **kwargs
   )

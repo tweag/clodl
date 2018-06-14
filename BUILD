@@ -45,6 +45,7 @@ haskell_binary(
 library_closure(
   name = "clotest",
   srcs = ["hello-hs"],
+  outzip = "closure.zip",
   excludes = [
     "ld-linux-x86-64\.so.*",
     "libgcc_s\.so.*",
@@ -59,7 +60,7 @@ library_closure(
 java_binary(
   name = "hello-java",
   runtime_deps = [":base-jar"],
-  resources = [":clotest"],
+  classpath_resources = [":clotest"],
   main_class = "io.tweag.jarify.JarifyMain",
   testonly = True,
 )
