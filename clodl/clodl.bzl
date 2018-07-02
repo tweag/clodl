@@ -18,7 +18,7 @@ def _impl_rename_as_solib(ctx):
       outputs = [symlink],
       mnemonic = "Symlink",
       command = """
-        set -e
+        set -eo pipefail
         mkdir -p {out_dir}
         ln -s $(realpath {target}) {link}
         """.format(
@@ -73,7 +73,7 @@ def _impl_shared_lib_paths(ctx):
     inputs = depset(transitive=[runfiles, files]),
     arguments = [args],
     command = """
-      set -e
+      set -eo pipefail
       tops="$1"
       libs_file="$2"
 
@@ -149,7 +149,7 @@ def _impl_expose_runfiles(ctx):
     inputs = input_libs_files,
     arguments = [args],
     command = """
-      set -e
+      set -eo pipefail
       outputdir="$1"
       runfiles="$2"
 
