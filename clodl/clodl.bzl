@@ -306,7 +306,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], **kwargs):
     excludes="%s"
     tmpdir=$$(mktemp -d)
     # Produce a file with regexes to exclude libs from the zip.
-    tmpx_file=$$(mktemp tmpexcludes_file.XXXX)
+    tmpx_file=$$(mktemp tmpexcludes_file.XXXXXX)
     # Note: quotes are important in shell expansion to preserve newlines.
     echo "$$excludes" | sed "s/\\(.*\\)/^(.*\\/)?\\1$$/" > $$tmpx_file
 
@@ -315,7 +315,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], **kwargs):
     # TODO: we can make cp succeed if we implement this rule with
     # a custom rule instead of a genrule.
     cp $$(cat $$libs_file | grep -Evf $$tmpx_file) $$tmpdir || true
-    cp $$(echo -n $(SRCS) | xargs -L 1 -d ' ' | grep -Evf $$tmpx_file) $$tmpdir
+    cp $$(echo -n $(SRCS) | xargs -n 1 | grep -Evf $$tmpx_file) $$tmpdir
     
     mkdir -p "$$outputdir"
     zip -qjr $@ $$tmpdir
