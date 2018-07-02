@@ -65,12 +65,26 @@ def _impl_shared_lib_paths(ctx):
   for src in ctx.attr.srcs:
     files = depset(transitive=[src.files, files])
     runfiles = depset(transitive=[src.default_runfiles.files, runfiles])
+
+  # find tools
+  grep = ctx.actions.declare_file("grep")
+  ldd = ctx.actions.declare_file("ldd")
+  ctx.actions.run_shell(
+    outputs = [grep, ldd],
+    use_default_shell_env = True,
+    command = """
+      set -eo pipefail
+      ln -s $(command -v ldd) {ldd}
+      ln -s $(command -v grep) {grep}
+    """.format(ldd=ldd.path, grep=grep.path)
+  )
+
   args = ctx.actions.args();
   args.add_joined(files, join_with=" ")
   args.add(libs_file)
   ctx.actions.run_shell(
     outputs = [libs_file],
-    inputs = depset(transitive=[runfiles, files]),
+    inputs = depset([grep, ldd], transitive=[runfiles, files]),
     arguments = [args],
     command = """
       set -eo pipefail
@@ -78,18 +92,18 @@ def _impl_shared_lib_paths(ctx):
       libs_file="$2"
 
       # find the list of libraries with ldd
-      ldd $tops \
-        | grep '=>' \
-        | grep -v 'linux-vdso.so' \
+      {ldd} $tops \
+        | {grep} '=>' \
+        | {grep} -v 'linux-vdso.so' \
         | sed "s/^.* => \\(.*\\) (0x[0-9a-f]*)/\\1/" \
         | sort \
         | uniq > $libs_file
       # Fail if there are any missing libraries
-      if grep 'not found' $libs_file
+      if {grep} 'not found' $libs_file
       then
         exit 1
       fi
-    """
+    """.format(ldd=ldd.path, grep=grep.path)
   )
 
   return DefaultInfo(files=depset([libs_file]))
