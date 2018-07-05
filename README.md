@@ -61,7 +61,8 @@ java_binary(
 To build and test:
 
 ```
-$ bazel test //...
+$ bazel build //...
+$ bazel run hello-java
 ```
 
 [nix]: https://nixos.org/nix
