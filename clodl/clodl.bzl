@@ -69,14 +69,16 @@ def _impl_shared_lib_paths(ctx):
   # find tools
   grep = ctx.actions.declare_file("grep")
   ldd = ctx.actions.declare_file("ldd")
+  scanelf = ctx.actions.declare_file("scanelf")
   ctx.actions.run_shell(
-    outputs = [grep, ldd],
+    outputs = [grep, ldd, scanelf],
     use_default_shell_env = True,
     command = """
       set -eo pipefail
       ln -s $(command -v ldd) {ldd}
       ln -s $(command -v grep) {grep}
-    """.format(ldd=ldd.path, grep=grep.path)
+      ln -s $(command -v scanelf) {scanelf}
+    """.format(ldd=ldd.path, grep=grep.path, scanelf=scanelf.path)
   )
 
   args = ctx.actions.args();
@@ -84,7 +86,7 @@ def _impl_shared_lib_paths(ctx):
   args.add(libs_file)
   ctx.actions.run_shell(
     outputs = [libs_file],
-    inputs = depset([grep, ldd], transitive=[runfiles, files]),
+    inputs = depset([ctx.executable._deps_tool, grep, ldd, scanelf], transitive=[runfiles, files]),
     arguments = [args],
     command = """
       set -eo pipefail
@@ -92,18 +94,12 @@ def _impl_shared_lib_paths(ctx):
       libs_file="$2"
 
       # find the list of libraries with ldd
-      {ldd} $tops \
-        | {grep} '=>' \
-        | {grep} -v 'linux-vdso.so' \
-        | sed "s/^.* => \\(.*\\) (0x[0-9a-f]*)/\\1/" \
-        | sort \
-        | uniq > $libs_file
-      # Fail if there are any missing libraries
-      if {grep} 'not found' $libs_file
-      then
-        exit 1
-      fi
-    """.format(ldd=ldd.path, grep=grep.path)
+      PATH={tools}:$PATH {deps} $tops -- {excludes} > $libs_file
+    """.format(
+      deps=ctx.executable._deps_tool.path,
+      excludes=' '.join(ctx.attr.excludes),
+      tools=ldd.dirname,
+    )
   )
 
   return DefaultInfo(files=depset([libs_file]))
@@ -111,7 +107,16 @@ def _impl_shared_lib_paths(ctx):
 
 _shared_lib_paths = rule(
   implementation = _impl_shared_lib_paths,
-  attrs = { "srcs": attr.label_list() },
+  attrs = {
+    "srcs": attr.label_list(),
+    "excludes": attr.string_list(),
+    "_deps_tool": attr.label(
+      executable=True,
+      cfg="host",
+      allow_files=True,
+      default=Label("//:deps"),
+    ),
+  },
 )
 """
 Collects the list of shared library paths of an executable or library.
@@ -256,6 +261,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], **kwargs):
   _shared_lib_paths(
     name = libs_file,
     srcs = srcs,
+    excludes = excludes,
     **kwargs
   )
   # Produce the arguments for linking the wrapper library
@@ -317,24 +323,19 @@ def library_closure(name, srcs, outzip = "", excludes = [], **kwargs):
     cmd = """
     libs_file="$(location %s)"
     outputdir="%s"
-    excludes="%s"
     tmpdir=$$(mktemp -d)
-    # Produce a file with regexes to exclude libs from the zip.
-    tmpx_file=$$(mktemp tmpexcludes_file.XXXXXX)
-    # Note: quotes are important in shell expansion to preserve newlines.
-    echo "$$excludes" | sed "s/\\(.*\\)/^(.*\\/)?\\1$$/" > $$tmpx_file
 
     # We might fail to copy some paths in the libs_file
     # which might be files in the runfiles and are copied next.
     # TODO: we can make cp succeed if we implement this rule with
     # a custom rule instead of a genrule.
-    cp $$(cat $$libs_file | grep -Evf $$tmpx_file) $$tmpdir || true
-    cp $$(echo -n $(SRCS) | xargs -n 1 | grep -Evf $$tmpx_file) $$tmpdir
+    cp $$(cat $$libs_file) $$tmpdir || true
+    cp $$(echo -n $(SRCS) | xargs -n 1) $$tmpdir
     
     mkdir -p "$$outputdir"
     zip -qjr $@ $$tmpdir
-    rm -rf $$tmpdir $$tmpx_file
-    """ % (libs_file, outputdir, '\n'.join(excludes)),
+    rm -rf $$tmpdir
+    """ % (libs_file, outputdir),
     outs = [outzip],
     **kwargs
   )

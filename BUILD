@@ -64,3 +64,8 @@ java_binary(
   main_class = "io.tweag.jarify.JarifyMain",
   testonly = True,
 )
+
+sh_binary(
+  name = "deps",
+  srcs = ["src/main/bash/deps.sh"],
+)
