@@ -81,6 +81,11 @@ def _impl_shared_lib_paths(ctx):
     """.format(ldd=ldd.path, grep=grep.path, scanelf=scanelf.path)
   )
 
+  if [] == ctx.attr.excludes:
+    excludes = ""
+  else:
+    excludes = "'" + "' '".join(ctx.attr.excludes) + "'"
+
   args = ctx.actions.args();
   args.add_joined(files, join_with=" ")
   args.add(libs_file)
@@ -97,7 +102,7 @@ def _impl_shared_lib_paths(ctx):
       PATH={tools}:$PATH {deps} $tops -- {excludes} > $libs_file
     """.format(
       deps=ctx.executable._deps_tool.path,
-      excludes=' '.join(ctx.attr.excludes),
+      excludes=excludes,
       tools=ldd.dirname,
     )
   )
