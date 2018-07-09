@@ -54,6 +54,7 @@ library_closure(
     "libm\.so.*",
     "libpthread\.so.*",
   ],
+  lint = True,
   testonly = True,
 )
 

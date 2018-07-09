@@ -211,7 +211,7 @@ Example:
 """
 
 
-def library_closure(name, srcs, outzip = "", excludes = [], **kwargs):
+def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwargs):
   """
   Produces a zip file containing a closure of all the shared libraries needed
   to load the given shared libraries.
@@ -225,6 +225,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], **kwargs):
     excludes: Patterns matching the names of libraries that should be excluded
               from the closure. Extended regular expresions as provided by grep
               can be used here.
+    lint: Check that no excluded library is present in the output zip file.
 
   Example:
     ```bzl
@@ -328,6 +329,8 @@ def library_closure(name, srcs, outzip = "", excludes = [], **kwargs):
     cmd = """
     libs_file="$(location %s)"
     outputdir="%s"
+    excludes="%s"
+    lint="%s"
     tmpdir=$$(mktemp -d)
 
     # We might fail to copy some paths in the libs_file
@@ -340,7 +343,27 @@ def library_closure(name, srcs, outzip = "", excludes = [], **kwargs):
     mkdir -p "$$outputdir"
     zip -qjr $@ $$tmpdir
     rm -rf $$tmpdir
-    """ % (libs_file, outputdir),
+
+    [ $$lint == True ] || exit 0
+
+    # Produce a file with regexes to exclude libs from the zip.
+    tmpx_file=$$(mktemp tmpexcludes_file.XXXXXX)
+    # Note: quotes are important in shell expansion to preserve newlines.
+    echo "$$excludes" > $$tmpx_file
+
+    # Check that excluded libraries don't appear in the zip file.
+    if unzip -t $@ \
+         | grep -e '^[ ]*testing: ' \
+         | sed "s/^[ ]*testing: \\([^ ]*\\).*/\\1/" \
+         | grep -Ef $$tmpx_file
+    then
+      echo "library_closure: lint: Some files were not excluded."
+      exit 1
+    fi
+
+    rm -rf $$tmpx_file
+
+    """ % (libs_file, outputdir, '\n'.join(excludes), lint),
     outs = [outzip],
     **kwargs
   )
