@@ -312,7 +312,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwar
   native.cc_binary(
     name = wrapper_lib,
     linkopts = [
-      "-shared",
+      "-pie",
       "-L" + solibdir,
       "-Wl,-rpath=$$ORIGIN",
       param_file,
