@@ -2,7 +2,7 @@
 
 load("@bazel_skylib//:lib.bzl", "paths")
 
-def _impl_rename_as_solib(ctx):
+def _rename_as_solib_impl(ctx):
     """Renames files as libraries."""
 
     output_files = []
@@ -30,7 +30,7 @@ def _impl_rename_as_solib(ctx):
     return DefaultInfo(files = depset(output_files))
 
 _rename_as_solib = rule(
-    implementation = _impl_rename_as_solib,
+    implementation = _rename_as_solib_impl,
     attrs = {
         "deps": attr.label_list(),
         "outputdir": attr.string(doc = "Where the outputs are placed.", mandatory = True),
@@ -55,7 +55,7 @@ Example:
   Note: Runfiles are not propagated.
 """
 
-def _impl_shared_lib_paths(ctx):
+def _shared_lib_paths_impl(ctx):
     """Collects the list of shared library paths of an executable or library."""
     libs_file = ctx.actions.declare_file(ctx.label.name + ".txt")
     files = depset()
@@ -108,7 +108,7 @@ def _impl_shared_lib_paths(ctx):
     return DefaultInfo(files = depset([libs_file]))
 
 _shared_lib_paths = rule(
-    implementation = _impl_shared_lib_paths,
+    implementation = _shared_lib_paths_impl,
     attrs = {
         "srcs": attr.label_list(),
         "excludes": attr.string_list(),
@@ -145,7 +145,7 @@ def _mangle_dir(name):
     components = [c for c in components if c]
     return "/".join(components).replace("_", "_U").replace("/", "_S")
 
-def _impl_expose_runfiles(ctx):
+def _expose_runfiles_impl(ctx):
     """Produces as output all the files needed to load an executable or library."""
     outputdir = ctx.attr.outputdir
 
@@ -183,7 +183,7 @@ def _impl_expose_runfiles(ctx):
     return DefaultInfo(files = depset(output_libs_files))
 
 _expose_runfiles = rule(
-    implementation = _impl_expose_runfiles,
+    implementation = _expose_runfiles_impl,
     attrs = {
         "deps": attr.label_list(),
         "outputdir": attr.string(doc = "Where the outputs are placed.", mandatory = True),
