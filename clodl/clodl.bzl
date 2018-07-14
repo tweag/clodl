@@ -390,3 +390,63 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, execut
         outs = [outzip],
         **kwargs
     )
+
+def binary_closure(name, src, excludes = [], lint = False, **kwargs):
+    """
+    Produces a zip file containing a closure of all the shared libraries needed
+    to load the given executable. The zipfile is prepended with a script that
+    uncompresses the zip file and executes the binary.
+
+    Args:
+      name: A unique name for this rule
+      src: The executable binary
+      excludes: Same purpose as in library_closure
+      lint: Same purpose as in library_closure
+
+    Example:
+      ```bzl
+      binary_closure(
+          name = "closure"
+          src = ":exe"
+          excludes = ["libexclude_this\.so", "libthis_too\.so"]
+          ...
+      )
+      ```
+      The zip file closure is created, with all the
+      shared libraries required by ":exe" except those in excludes.
+    """
+    zip_name = "%s-closure" % name
+    library_closure(
+        name = zip_name,
+        srcs = [src],
+        excludes = excludes,
+        lint = lint,
+        executable = True,
+        **kwargs
+    )
+
+    # Prepend a script to execute the closure
+    native.genrule(
+        name = name,
+        srcs = [zip_name],
+        cmd = """
+    set -exu
+    zip_name="{zip_name}"
+    zip_file_path="$(SRCS)"
+
+    cat - "$$zip_file_path" > $@ <<END
+    #!/bin/bash
+    set -eu
+    tmpdir=\$$(mktemp -d)
+    trap "rm -rf '\$$tmpdir'" EXIT
+    unzip -q "\$$0" -d "\$$tmpdir" 2> /dev/null || true
+    "\$$tmpdir/{zip_name}_wrapper"
+    exit 0
+END
+    chmod +x $@
+
+    """.format(zip_name = zip_name),
+        executable = True,
+        outs = [name + ".sh"],
+        **kwargs
+    )

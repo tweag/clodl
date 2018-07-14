@@ -12,7 +12,7 @@ jobs:
       - run:
           name: Install system dependencies
           command: |
-            apk update --no-progress && apk --no-progress add ca-certificates bash binutils zip
+            apk update --no-progress && apk --no-progress add ca-certificates bash binutils zip unzip
             $NIXRUN "echo nix dependencies installed"
       - run:
           name: Build project
@@ -21,6 +21,7 @@ jobs:
           name: Test hello example
           command: |
             $NIXRUN "bazel run hello-java"
+            $NIXRUN "bazel run clotestbin"
 
 workflows:
   version: 2
