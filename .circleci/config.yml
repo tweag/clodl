@@ -16,12 +16,12 @@ jobs:
             $NIXRUN "echo nix dependencies installed"
       - run:
           name: Build project
-          command: $NIXRUN "bazel build //..."
+          command: $NIXRUN "bazel build  --jobs 2 //..."
       - run:
           name: Test hello example
           command: |
-            $NIXRUN "bazel run hello-java"
-            $NIXRUN "bazel run clotestbin"
+              $NIXRUN "bazel run --jobs 2 hello-java"
+              $NIXRUN "bazel run --jobs 2 clotestbin"
 
 workflows:
   version: 2
