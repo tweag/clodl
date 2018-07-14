@@ -1,4 +1,4 @@
-"""Rules for creating self-contained shared objects"""
+"""Library and binary closures"""
 
 load("@bazel_skylib//:lib.bzl", "paths")
 
@@ -30,17 +30,22 @@ def _rename_as_solib_impl(ctx):
     return DefaultInfo(files = depset(output_files))
 
 _rename_as_solib = rule(
-    implementation = _rename_as_solib_impl,
+    _rename_as_solib_impl,
     attrs = {
         "deps": attr.label_list(),
-        "outputdir": attr.string(doc = "Where the outputs are placed.", mandatory = True),
+        "outputdir": attr.string(
+          doc = "Where the outputs are placed.",
+          mandatory = True,
+        ),
     },
 )
-"""
-Renames files as shared libraries to make them suitable for linking with cc_binary.
-This is useful for linking executables built with -pie.
+"""Renames files as shared libraries to make them suitable for linking
+with `cc_binary`.
+
+This is useful for linking executables built with `-pie`.
 
 Example:
+
   ```bzl
   _rename_as_solib(
       name = "some_binary"
@@ -48,11 +53,14 @@ Example:
       outputdir = "dir"
   )
   ```
-  If some_binary has files a.so and b, the outputs are dir/a.so and dir/b.so.
-  The outputs need to be placed in a new directory or bazel will complain of conflicts
-  with the rules that initially created the runfiles.
+
+  If some_binary has files `a.so` and `b`, the outputs are `dir/a.so`
+  and `dir/b.so`. The outputs need to be placed in a new directory or
+  bazel will complain of conflicts with the rules that initially
+  created the runfiles.
 
   Note: Runfiles are not propagated.
+
 """
 
 def _shared_lib_paths_impl(ctx):
@@ -108,7 +116,7 @@ def _shared_lib_paths_impl(ctx):
     return DefaultInfo(files = depset([libs_file]))
 
 _shared_lib_paths = rule(
-    implementation = _shared_lib_paths_impl,
+    _shared_lib_paths_impl,
     attrs = {
         "srcs": attr.label_list(),
         "excludes": attr.string_list(),
@@ -120,25 +128,28 @@ _shared_lib_paths = rule(
         ),
     },
 )
-"""
-Collects the list of shared library paths of an executable or library.
+"""Collects the list of shared library paths of an executable or
+library.
 
 Produces a txt file containing the paths.
 
 Example:
+
   ```bzl
   _shared_lib_paths = (
       name = "shared-libs"
       srcs = [":lib", ":exe"]
   )
   ```
+
   The output is shared-libs.txt.
+
 """
 
 def _mangle_dir(name):
-    """
-      Creates a unique directory name from the repo name and package name of the
-      package being evaluated, and a given name.
+    """Creates a unique directory name from the repo name and package
+      name of the package being evaluated, and a given name.
+
     """
     components = [native.repository_name(), native.package_name(), name]
     components = [c.replace("@", "") for c in components]
@@ -183,16 +194,19 @@ def _expose_runfiles_impl(ctx):
     return DefaultInfo(files = depset(output_libs_files))
 
 _expose_runfiles = rule(
-    implementation = _expose_runfiles_impl,
+    _expose_runfiles_impl,
     attrs = {
         "deps": attr.label_list(),
-        "outputdir": attr.string(doc = "Where the outputs are placed.", mandatory = True),
+        "outputdir": attr.string(
+          doc = "Where the outputs are placed.",
+          mandatory = True
+        ),
     },
 )
-"""
-Produces as output all the files needed to load an executable or library.
+"""Produces as output all the files needed to load an executable or library.
 
 Example:
+
   ```bzl
   _expose_runfiles(
       name = "lib_runfiles"
@@ -200,28 +214,35 @@ Example:
       outputdir = "dir"
   )
   ```
-  The outputs are placed in the directory dir. The outputs need to be placed in
-  a new directory or bazel will complain of conflicts with the rules that
-  initially created the runfiles.
+
+  The outputs are placed in the directory `dir`. The outputs need to
+  be placed in a new directory or bazel will complain of conflicts
+  with the rules that initially created the runfiles.
+
 """
 
 def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwargs):
-    """
-    Produces a zip file containing a closure of all the shared libraries needed
-    to load the given shared libraries.
+    """Produces a zip file containing a closure of all the shared
+    libraries needed to load the given shared libraries.
 
     Args:
       name: A unique name for this rule.
+
       srcs: Libraries whose dependencies need to be included.
-      outzip: The name of the zip file to produce. If omitted, the file is named
-              as the rule with a .zip file extension. If present, the file is
-              created inside a directory with a name generated from the rule name.
-      excludes: Patterns matching the names of libraries that should be excluded
-                from the closure. Extended regular expresions as provided by grep
-                can be used here.
+
+      outzip: The name of the zip file to produce. If omitted, the
+              file is named as the rule with a `.zip` file extension.
+              If present, the file is created inside a directory with
+              a name generated from the rule name.
+
+      excludes: Patterns matching the names of libraries that should
+                be excluded from the closure. Extended regular
+                expresions as provided by grep can be used here.
+
       lint: Check that no excluded library is present in the output zip file.
 
     Example:
+
       ```bzl
       library_closure(
           name = "closure"
@@ -231,9 +252,11 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwar
           ...
       )
       ```
-      The zip file <generated_dir>/file.zip is created, with all the
-      shared libraries required by ":lib1" and ":lib2" except those in excludes.
-      <generated_dir> is a name which depends on name.
+
+      The zip file `<generated_dir>/file.zip` is created, with all the
+      shared libraries required by `:lib1` and `:lib2` except those in
+      excludes. `<generated_dir>` is a name which depends on `name`.
+
     """
     libs_file = "%s-libs" % name
     srclibs = "%s-as-libs" % name
