@@ -221,7 +221,7 @@ Example:
 
 """
 
-def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwargs):
+def library_closure(name, srcs, outzip = "", excludes = [], lint = False, executable = False, **kwargs):
     """Produces a zip file containing a closure of all the shared
     libraries needed to load the given shared libraries.
 
@@ -240,6 +240,10 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwar
                 expresions as provided by grep can be used here.
 
       lint: Check that no excluded library is present in the output zip file.
+      executable: Includes a wrapper in the zip file capable of executing the
+                  closure (`<name>_wrapper`). If executable is False, the wrapper
+                  is just a shared library that depends on all the other libraries
+                  in the closure.
 
     Example:
 
@@ -331,8 +335,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwar
     # dependencies were set.
     native.cc_binary(
         name = wrapper_lib,
-        linkopts = [
-            "-pie",
+        linkopts = ([] if executable else ["-shared"]) + [
             "-L" + solibdir,
             "-Wl,-rpath=$$ORIGIN",
             param_file,
