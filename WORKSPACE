@@ -98,3 +98,21 @@ cc_library(
 """,
     repository = "@nixpkgs",
 )
+
+# For Skydoc
+
+http_archive(
+    name = "io_bazel_rules_sass",
+    strip_prefix = "rules_sass-0.0.3",
+    urls = ["https://github.com/bazelbuild/rules_sass/archive/0.0.3.tar.gz"],
+)
+load("@io_bazel_rules_sass//sass:sass.bzl", "sass_repositories")
+sass_repositories()
+
+http_archive(
+    name = "io_bazel_skydoc",
+    strip_prefix = "skydoc-f531844d137c7accc44d841c08a2a2a366688571",
+    urls = ["https://github.com/bazelbuild/skydoc/archive/f531844d137c7accc44d841c08a2a2a366688571.tar.gz"],
+)
+load("@io_bazel_skydoc//skylark:skylark.bzl", "skydoc_repositories")
+skydoc_repositories()
