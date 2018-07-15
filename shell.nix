@@ -4,7 +4,6 @@ with pkgs;
 
 mkShell {
   buildInputs = [
-    bash
     bazel
     binutils
     nix
