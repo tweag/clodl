@@ -5,23 +5,25 @@ jobs:
     docker:
       - image: nixos/nix
     working_directory: ~/sparkle
+    resource_class: large
     environment:
-      - NIXRUN: nix-shell -I nixpkgs=./nixpkgs.nix -p gcc bazel python --run
+      - NIXRUN: nix-shell --pure --run
     steps:
       - checkout
       - run:
           name: Install system dependencies
           command: |
-            apk update --no-progress && apk --no-progress add ca-certificates bash binutils zip unzip
+            apk --no-progress update
+            apk --no-progress add ca-certificates bash
             $NIXRUN "echo nix dependencies installed"
       - run:
           name: Build project
-          command: $NIXRUN "bazel build  --jobs 2 //..."
+          command: $NIXRUN "bazel build //..."
       - run:
           name: Test hello example
           command: |
-              $NIXRUN "bazel run --jobs 2 hello-java"
-              $NIXRUN "bazel run --jobs 2 clotestbin"
+              $NIXRUN "bazel run hello-java"
+              $NIXRUN "bazel run clotestbin"
 
 workflows:
   version: 2
