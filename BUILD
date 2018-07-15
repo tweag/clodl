@@ -9,6 +9,7 @@ load(
 load(
     "@io_tweag_clodl//clodl:clodl.bzl",
     "library_closure",
+    "binary_closure",
 )
 
 haskell_toolchain(
@@ -62,6 +63,21 @@ library_closure(
     ],
     lint = True,
     outzip = "closure.zip",
+)
+
+binary_closure(
+    name = "clotestbin",
+    testonly = True,
+    src = "hello-hs",
+    excludes = [
+        "ld-linux-x86-64\.so.*",
+        "libgcc_s\.so.*",
+        "libc\.so.*",
+        "libdl\.so.*",
+        "libm\.so.*",
+        "libpthread\.so.*",
+    ],
+    lint = True,
 )
 
 java_binary(

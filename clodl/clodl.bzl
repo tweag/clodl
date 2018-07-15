@@ -73,18 +73,20 @@ def _shared_lib_paths_impl(ctx):
         runfiles = depset(transitive = [src.default_runfiles.files, runfiles])
 
     # find tools
+    bash = ctx.actions.declare_file("bash")
     grep = ctx.actions.declare_file("grep")
     ldd = ctx.actions.declare_file("ldd")
     scanelf = ctx.actions.declare_file("scanelf")
     ctx.actions.run_shell(
-        outputs = [grep, ldd, scanelf],
+        outputs = [bash, grep, ldd, scanelf],
         use_default_shell_env = True,
         command = """
         set -eo pipefail
+        ln -s $(command -v bash) {bash}
         ln -s $(command -v ldd) {ldd}
         ln -s $(command -v grep) {grep}
         ln -s $(command -v scanelf) {scanelf}
-        """.format(ldd = ldd.path, grep = grep.path, scanelf = scanelf.path),
+        """.format(ldd = ldd.path, bash=bash.path, grep = grep.path, scanelf = scanelf.path),
     )
 
     if [] == ctx.attr.excludes:
@@ -97,7 +99,7 @@ def _shared_lib_paths_impl(ctx):
     args.add(libs_file)
     ctx.actions.run_shell(
         outputs = [libs_file],
-        inputs = depset([ctx.executable._deps_tool, grep, ldd, scanelf], transitive = [runfiles, files]),
+        inputs = depset([ctx.executable._deps_tool, bash, grep, ldd, scanelf], transitive = [runfiles, files]),
         arguments = [args],
         command = """
         set -eo pipefail
@@ -221,7 +223,7 @@ Example:
 
 """
 
-def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwargs):
+def library_closure(name, srcs, outzip = "", excludes = [], lint = False, executable = False, **kwargs):
     """Produces a zip file containing a closure of all the shared
     libraries needed to load the given shared libraries.
 
@@ -240,6 +242,10 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwar
                 expresions as provided by grep can be used here.
 
       lint: Check that no excluded library is present in the output zip file.
+      executable: Includes a wrapper in the zip file capable of executing the
+                  closure (`<name>_wrapper`). If executable is False, the wrapper
+                  is just a shared library that depends on all the other libraries
+                  in the closure.
 
     Example:
 
@@ -331,8 +337,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwar
     # dependencies were set.
     native.cc_binary(
         name = wrapper_lib,
-        linkopts = [
-            "-pie",
+        linkopts = ([] if executable else ["-shared"]) + [
             "-L" + solibdir,
             "-Wl,-rpath=$$ORIGIN",
             param_file,
@@ -385,5 +390,65 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, **kwar
         rm -rf $$tmpx_file
         """ % (libs_file, outputdir, "\n".join(excludes), lint),
         outs = [outzip],
+        **kwargs
+    )
+
+def binary_closure(name, src, excludes = [], lint = False, **kwargs):
+    """
+    Produces a zip file containing a closure of all the shared libraries needed
+    to load the given executable. The zipfile is prepended with a script that
+    uncompresses the zip file and executes the binary.
+
+    Args:
+      name: A unique name for this rule
+      src: The executable binary
+      excludes: Same purpose as in library_closure
+      lint: Same purpose as in library_closure
+
+    Example:
+      ```bzl
+      binary_closure(
+          name = "closure"
+          src = ":exe"
+          excludes = ["libexclude_this\.so", "libthis_too\.so"]
+          ...
+      )
+      ```
+      The zip file closure is created, with all the
+      shared libraries required by ":exe" except those in excludes.
+    """
+    zip_name = "%s-closure" % name
+    library_closure(
+        name = zip_name,
+        srcs = [src],
+        excludes = excludes,
+        lint = lint,
+        executable = True,
+        **kwargs
+    )
+
+    # Prepend a script to execute the closure
+    native.genrule(
+        name = name,
+        srcs = [zip_name],
+        cmd = """
+    set -exu
+    zip_name="{zip_name}"
+    zip_file_path="$(SRCS)"
+
+    cat - "$$zip_file_path" > $@ <<END
+    #!/bin/bash
+    set -eu
+    tmpdir=\$$(mktemp -d)
+    trap "rm -rf '\$$tmpdir'" EXIT
+    unzip -q "\$$0" -d "\$$tmpdir" 2> /dev/null || true
+    "\$$tmpdir/{zip_name}_wrapper"
+    exit 0
+END
+    chmod +x $@
+
+    """.format(zip_name = zip_name),
+        executable = True,
+        outs = [name + ".sh"],
         **kwargs
     )
