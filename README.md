@@ -1,5 +1,7 @@
 # clodl: self-contained dynamic libraries
 
+[![CircleCI](https://circleci.com/gh/tweag/clodl.svg?style=svg)](https://circleci.com/gh/tweag/clodl)
+
 `clodl` computes the *closure* of a shared object. That is, given
 a shared library or a position independent executable (PIE), it
 returns a single, self-contained file packing all dependencies. Think
