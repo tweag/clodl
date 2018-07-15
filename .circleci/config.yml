@@ -6,7 +6,7 @@ jobs:
       - image: nixos/nix
     working_directory: ~/sparkle
     environment:
-      - NIXRUN: nix-shell -I nixpkgs=./nixpkgs.nix -p gcc bazel --run
+      - NIXRUN: nix-shell -I nixpkgs=./nixpkgs.nix -p gcc bazel python --run
     steps:
       - checkout
       - run:
