@@ -432,7 +432,7 @@ def binary_closure(name, src, excludes = [], lint = False, **kwargs):
         name = name,
         srcs = [zip_name],
         cmd = """
-    set -exu
+    set -eu
     zip_name="{zip_name}"
     zip_file_path="$(SRCS)"
 
