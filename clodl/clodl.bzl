@@ -73,18 +73,20 @@ def _shared_lib_paths_impl(ctx):
         runfiles = depset(transitive = [src.default_runfiles.files, runfiles])
 
     # find tools
+    bash = ctx.actions.declare_file("bash")
     grep = ctx.actions.declare_file("grep")
     ldd = ctx.actions.declare_file("ldd")
     scanelf = ctx.actions.declare_file("scanelf")
     ctx.actions.run_shell(
-        outputs = [grep, ldd, scanelf],
+        outputs = [bash, grep, ldd, scanelf],
         use_default_shell_env = True,
         command = """
         set -eo pipefail
+        ln -s $(command -v bash) {bash}
         ln -s $(command -v ldd) {ldd}
         ln -s $(command -v grep) {grep}
         ln -s $(command -v scanelf) {scanelf}
-        """.format(ldd = ldd.path, grep = grep.path, scanelf = scanelf.path),
+        """.format(ldd = ldd.path, bash=bash.path, grep = grep.path, scanelf = scanelf.path),
     )
 
     if [] == ctx.attr.excludes:
@@ -97,7 +99,7 @@ def _shared_lib_paths_impl(ctx):
     args.add(libs_file)
     ctx.actions.run_shell(
         outputs = [libs_file],
-        inputs = depset([ctx.executable._deps_tool, grep, ldd, scanelf], transitive = [runfiles, files]),
+        inputs = depset([ctx.executable._deps_tool, bash, grep, ldd, scanelf], transitive = [runfiles, files]),
         arguments = [args],
         command = """
         set -eo pipefail
