@@ -243,8 +243,8 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
 
       executable: Includes a wrapper in the zip file capable of executing the
                   closure (`<name>_wrapper`). If executable is False, the wrapper
-                  is just a shared library that depends on all the other libraries
-                  in the closure.
+                  is just a shared library `lib<name>_wrapper.so` that depends on
+                  all the other libraries in the closure.
 
     Example:
 
@@ -268,7 +268,10 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     runfiles = "%s-runfiles" % name
     param_file = "%s-params.ld" % name
     dirs_file = "%s-search_dirs.ld" % name
-    wrapper_lib = "%s_wrapper" % name
+    if executable:
+        wrapper_lib = "%s_wrapper" % name
+    else:
+        wrapper_lib = "lib%s_wrapper.so" % name
     solibdir = _mangle_dir(name + "_solib")
     if outzip == "":
         outputdir = "."
@@ -336,7 +339,8 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     # dependencies were set.
     native.cc_binary(
         name = wrapper_lib,
-        linkopts = ([] if executable else ["-shared"]) + [
+        linkshared = not executable,
+        linkopts = [
             "-L" + solibdir,
             "-Wl,-rpath=$$ORIGIN",
             param_file,

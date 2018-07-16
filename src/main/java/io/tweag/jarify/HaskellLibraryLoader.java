@@ -26,10 +26,7 @@ public class HaskellLibraryLoader {
 		       StandardCopyOption.REPLACE_EXISTING);
 	    in.close();
 	    try {
-                if (System.getProperty("os.name").startsWith("Mac "))
-		    loadApplication(jarifyAppZipFile, "hsapp");
-		else
-		    loadApplication(jarifyAppZipFile, "clotest_wrapper");
+            loadApplication(jarifyAppZipFile, "libclotest_wrapper.so");
 	    } finally {
 		jarifyAppZipFile.delete();
 	    }
