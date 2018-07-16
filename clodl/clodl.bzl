@@ -433,7 +433,7 @@ def binary_closure(name, src, excludes = [], **kwargs):
     zip_file_path="$(SRCS)"
 
     cat - "$$zip_file_path" > $@ <<END
-    #!/bin/bash
+    #!/usr/bin/env bash
     set -eu
     tmpdir=\$$(mktemp -d)
     trap "rm -rf '\$$tmpdir'" EXIT
