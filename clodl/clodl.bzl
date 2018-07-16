@@ -223,7 +223,7 @@ Example:
 
 """
 
-def library_closure(name, srcs, outzip = "", excludes = [], lint = False, executable = False, **kwargs):
+def library_closure(name, srcs, outzip = "", excludes = [], executable = False, **kwargs):
     """Produces a zip file containing a closure of all the shared
     libraries needed to load the given shared libraries.
 
@@ -241,7 +241,6 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, execut
                 be excluded from the closure. Extended regular
                 expresions as provided by grep can be used here.
 
-      lint: Check that no excluded library is present in the output zip file.
       executable: Includes a wrapper in the zip file capable of executing the
                   closure (`<name>_wrapper`). If executable is False, the wrapper
                   is just a shared library that depends on all the other libraries
@@ -356,7 +355,6 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, execut
         libs_file="$(location %s)"
         outputdir="%s"
         excludes="%s"
-        lint="%s"
         tmpdir=$$(mktemp -d)
 
         # We might fail to copy some paths in the libs_file
@@ -370,7 +368,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, execut
         zip -qjr $@ $$tmpdir
         rm -rf $$tmpdir
 
-        [ $$lint == True ] || exit 0
+        # Check that the excluded libraries have been really excluded.
 
         # Produce a file with regexes to exclude libs from the zip.
         tmpx_file=$$(mktemp tmpexcludes_file.XXXXXX)
@@ -388,12 +386,12 @@ def library_closure(name, srcs, outzip = "", excludes = [], lint = False, execut
         fi
 
         rm -rf $$tmpx_file
-        """ % (libs_file, outputdir, "\n".join(excludes), lint),
+        """ % (libs_file, outputdir, "\n".join(excludes)),
         outs = [outzip],
         **kwargs
     )
 
-def binary_closure(name, src, excludes = [], lint = False, **kwargs):
+def binary_closure(name, src, excludes = [], **kwargs):
     """
     Produces a zip file containing a closure of all the shared libraries needed
     to load the given executable. The zipfile is prepended with a script that
@@ -403,7 +401,6 @@ def binary_closure(name, src, excludes = [], lint = False, **kwargs):
       name: A unique name for this rule
       src: The executable binary
       excludes: Same purpose as in library_closure
-      lint: Same purpose as in library_closure
 
     Example:
       ```bzl
@@ -422,7 +419,6 @@ def binary_closure(name, src, excludes = [], lint = False, **kwargs):
         name = zip_name,
         srcs = [src],
         excludes = excludes,
-        lint = lint,
         executable = True,
         **kwargs
     )

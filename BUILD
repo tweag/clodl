@@ -61,7 +61,6 @@ library_closure(
         "libm\.so.*",
         "libpthread\.so.*",
     ],
-    lint = True,
     outzip = "closure.zip",
 )
 
@@ -77,7 +76,6 @@ binary_closure(
         "libm\.so.*",
         "libpthread\.so.*",
     ],
-    lint = True,
 )
 
 java_binary(
