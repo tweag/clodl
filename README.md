@@ -9,25 +9,57 @@ of the result as a poor man's container image. Compared to containers:
 
 * closures **do not** provide isolation (e.g. separate process,
   network, filesystem namespaces),
-* but closures **do** allow for loading into the same address space as
-  an existing process.
-  
+* but closures **do** allow for deploying to other machines without
+  concerns about missing dependencies.
+
+Clodl can be used to build binary closures or library closures.
+
+A binary closure is made from an executable and can be executed.
+In practice, the binary closure is a zip file appended to a script
+that uncompresses the file to a temporary folder and has the
+executable invoked.
+
+A library closure is a zip file containing the shared libraries in
+the closure, and provides a top-level library which depends on all of
+the others. When the closure is uncompressed, this top-level library
+can be loaded into the address space of an existing process.
+
 Executing a closure in the address space of an existing process
 enables lightweight high-speed interop between the closure and the
 rest of the process. The closure can natively invoke any function in
 the process without marshalling/unmarshalling any arguments, and vice
 versa.
 
-`clodl` is useful for "jarifying" native binaries. Provided shim Java
-code, closures can be packed inside a JAR and then loaded at runtime
-into the JVM. This makes JAR's an alternative packaging format to
-publish and deploy native binaries.
-
-## Example
+## Example of binary closure
 
 `clodl` is implemented as a set
 of [Bazel][bazel] [build rules][bazel-rules]. It integrates with your
 Bazel build system, e.g. as follows:
+
+```
+cc_binary(
+  name = "hello",
+  srcs = ["*.c"],
+  linkedshared = 1,
+)
+
+binary_closure(
+  name = "hello-closure",
+  srcs = ["hello"],
+)
+```
+
+The [BUILD file](BUILD) has a complete example.
+
+[bazel]: https://bazel.build
+[bazel-rules]: https://docs.bazel.build/versions/master/skylark/rules.html
+
+## Example of library closure
+
+`clodl` is useful for "jarifying" native binaries. Provided shim Java
+code, closures can be packed inside a JAR and then loaded at runtime
+into the JVM. This makes JAR's an alternative packaging format to
+publish and deploy native binaries.
 
 ```
 cc_binary(
@@ -39,7 +71,6 @@ cc_binary(
 library_closure(
   name = "hello-closure",
   srcs = ["hello.so"],
-  testonly = True,
 )
 
 java_binary(
@@ -50,9 +81,6 @@ java_binary(
   runtime_deps = ...,
 )
 ```
-
-[bazel]: https://bazel.build
-[bazel-rules]: https://docs.bazel.build/versions/master/skylark/rules.html
 
 ## Building it
 
