@@ -362,7 +362,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         # TODO: we can make cp succeed if we implement this rule with
         # a custom rule instead of a genrule.
         cp $$(cat $$libs_file) $$tmpdir || true
-        cp $$(echo -n $(SRCS) | xargs -n 1) $$tmpdir
+        cp $(SRCS) $$tmpdir
     
         mkdir -p "$$outputdir"
         zip -qjr $@ $$tmpdir
