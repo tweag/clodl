@@ -44,8 +44,8 @@ cc_binary(
 )
 
 binary_closure(
-  name = "hello-closure",
-  srcs = ["hello"],
+  name = "hello-closure-bin",
+  src = "hello",
 )
 ```
 
