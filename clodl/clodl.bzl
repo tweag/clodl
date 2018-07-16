@@ -357,12 +357,22 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         excludes="%s"
         tmpdir=$$(mktemp -d)
 
-        # We might fail to copy some paths in the libs_file
-        # which might be files in the runfiles and are copied next.
-        # TODO: we can make cp succeed if we implement this rule with
-        # a custom rule instead of a genrule.
-        cp $$(cat $$libs_file) $$tmpdir || true
-        cp $(SRCS) $$tmpdir
+        # Put SRCS names in an associative array
+        declare -A srcnames
+        for i in $(SRCS)
+        do
+            srcnames["$${i##*/}"]=1
+        done
+        # Keep the libraries which are not in SRCS
+        declare -a libs=()
+        for i in $$(cat $$libs_file)
+        do
+            if [ ! $${srcnames["$${i##*/}"]+defined} ]
+            then
+                libs+=($$i)
+            fi
+        done
+        cp $(SRCS) "$${libs[@]}" $$tmpdir
     
         mkdir -p "$$outputdir"
         zip -qjr $@ $$tmpdir
