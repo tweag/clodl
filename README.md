@@ -38,15 +38,16 @@ Bazel build system, e.g. as follows:
 
 ```
 cc_binary(
-  name = "hello",
+  name = "libhello.so",
   srcs = ["main.c"],
-  linkopts = ["-shared"],
+  linkshared = 1,
+  linkstatic = 0,
   deps = ...
 )
 
 binary_closure(
   name = "hello-closure-bin",
-  src = "hello",
+  src = "libhello.so",
 )
 ```
 
@@ -84,20 +85,21 @@ publish and deploy native binaries.
 
 ```
 cc_binary(
-  name = "hello",
+  name = "libhello.so",
   srcs = ["main.c"],
-  linkopts = ["-shared"],
+  linkshared = 1,
+  linkstatic = 0,
   deps = ...
 )
 
 library_closure(
   name = "hello-closure",
-  srcs = ["hello.so"],
+  srcs = ["libhello.so"],
 )
 
 java_binary(
   name = "hello-jar",
-  resources = [":hello-closure"],
+  classpath_resources = [":hello-closure"],
   main_class = ...,
   srcs = ...,
   runtime_deps = ...,

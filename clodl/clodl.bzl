@@ -162,14 +162,20 @@ def _expose_runfiles_impl(ctx):
     """Produces as output all the files needed to load an executable or library."""
     outputdir = ctx.attr.outputdir
 
+    files = {}
+    for f in ctx.files.deps:
+        files[f.basename] = f
+
     output_libs = {}
     input_libs = {}
     for dep in ctx.attr.deps:
         for lib in dep.default_runfiles.files:
-            # Skip non-library files.
-            if lib.basename.endswith(".so") or lib.basename.find(".so.") != -1:
-                input_libs[lib.basename] = lib
-                output_libs[lib.basename] = ctx.actions.declare_file(paths.join(outputdir, lib.basename))
+            # Runfiles might appear in deps too. We don't output them.
+            if files.get(lib.basename, None) == None:
+                # Skip non-library files.
+                if lib.basename.endswith(".so") or lib.basename.find(".so.") != -1:
+                    input_libs[lib.basename] = lib
+                    output_libs[lib.basename] = ctx.actions.declare_file(paths.join(outputdir, lib.basename))
 
     input_libs_files = input_libs.values()
     output_libs_files = output_libs.values()
@@ -273,6 +279,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     else:
         wrapper_lib = "lib%s_wrapper.so" % name
     solibdir = _mangle_dir(name + "_solib")
+    solibdir_renamed = solibdir + "_renamed"
     if outzip == "":
         outputdir = "."
         outzip = "%s.zip" % name
@@ -284,7 +291,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     _rename_as_solib(
         name = srclibs,
         deps = srcs,
-        outputdir = solibdir,
+        outputdir = solibdir_renamed,
         **kwargs
     )
 
@@ -341,7 +348,6 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         name = wrapper_lib,
         linkshared = not executable,
         linkopts = [
-            "-L" + solibdir,
             "-Wl,-rpath=$$ORIGIN",
             param_file,
             "-T$(location %s)" % dirs_file,
@@ -356,6 +362,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         name = name,
         srcs = [libs_file, wrapper_lib, runfiles, srclibs],
         cmd = """
+        set -euo pipefail
         libs_file="$(location %s)"
         outputdir="%s"
         excludes="%s"
@@ -383,6 +390,9 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         rm -rf $$tmpdir
 
         # Check that the excluded libraries have been really excluded.
+
+        # Check first that there are files to exclude.
+        [ "$$excludes" ] || exit 0
 
         # Produce a file with regexes to exclude libs from the zip.
         tmpx_file=$$(mktemp tmpexcludes_file.XXXXXX)

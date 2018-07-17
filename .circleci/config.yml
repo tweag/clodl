@@ -24,6 +24,7 @@ jobs:
           command: |
               $NIXRUN "bazel run hello-java"
               $NIXRUN "bazel run clotestbin"
+              $NIXRUN "bazel run clotestbin-cc"
 
 workflows:
   version: 2

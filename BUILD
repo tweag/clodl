@@ -86,6 +86,27 @@ java_binary(
     runtime_deps = [":base-jar"],
 )
 
+cc_library(
+    name = "lib-cc",
+    srcs = ["src/test/cc/hello/lib.c"],
+    testonly = True,
+)
+
+cc_binary(
+    name = "libhello-cc.so",
+    srcs = ["src/test/cc/hello/main.c"],
+    deps = ["lib-cc"],
+    linkshared = 1,
+    linkstatic = 0,
+    testonly = True,
+)
+
+binary_closure(
+    name = "clotestbin-cc",
+    testonly = True,
+    src = "libhello-cc.so",
+)
+
 sh_binary(
     name = "deps",
     srcs = ["src/main/bash/deps.sh"],
