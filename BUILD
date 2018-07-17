@@ -107,6 +107,19 @@ binary_closure(
     src = "libhello-cc.so",
 )
 
+cc_binary(
+    name = "libhello-cc-norunfiles.so",
+    srcs = ["src/test/cc/hello/main.c"],
+    linkshared = 1,
+    testonly = True,
+)
+
+binary_closure(
+    name = "clotestbin-cc-norunfiles",
+    testonly = True,
+    src = "libhello-cc-norunfiles.so",
+)
+
 sh_binary(
     name = "deps",
     srcs = ["src/main/bash/deps.sh"],

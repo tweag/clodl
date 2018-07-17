@@ -158,19 +158,24 @@ def _mangle_dir(name):
     components = [c for c in components if c]
     return "/".join(components).replace("_", "_U").replace("/", "_S")
 
-def _expose_runfiles_impl(ctx):
+def _add_runfiles_impl(ctx):
     """Produces as output all the files needed to load an executable or library."""
     outputdir = ctx.attr.outputdir
+
+    output_libs = {}
+    input_libs = {}
 
     files = {}
     for f in ctx.files.deps:
         files[f.basename] = f
+    for f in ctx.files.other_files:
+        files[f.basename] = f
+        input_libs[f.basename] = f
+        output_libs[f.basename] = ctx.actions.declare_file(paths.join(outputdir, f.basename))
 
-    output_libs = {}
-    input_libs = {}
     for dep in ctx.attr.deps:
         for lib in dep.default_runfiles.files:
-            # Runfiles might appear in deps too. We don't output them.
+            # Runfiles might appear in inputs too. We don't duplicate them.
             if files.get(lib.basename, None) == None:
                 # Skip non-library files.
                 if lib.basename.endswith(".so") or lib.basename.find(".so.") != -1:
@@ -201,10 +206,11 @@ def _expose_runfiles_impl(ctx):
 
     return DefaultInfo(files = depset(output_libs_files))
 
-_expose_runfiles = rule(
-    _expose_runfiles_impl,
+_add_runfiles = rule(
+    _add_runfiles_impl,
     attrs = {
         "deps": attr.label_list(),
+        "other_files": attr.label_list(),
         "outputdir": attr.string(
           doc = "Where the outputs are placed.",
           mandatory = True
@@ -213,12 +219,17 @@ _expose_runfiles = rule(
 )
 """Produces as output all the files needed to load an executable or library.
 
+  The runfiles are output together with the files in "other_files".
+  This is to ensure that the rule always produces some output to keep
+  bazel checks happy.
+
 Example:
 
   ```bzl
   _expose_runfiles(
       name = "lib_runfiles"
       deps = [":lib"]
+      other_files = ["a", "b"]
       outputdir = "dir"
   )
   ```
@@ -271,7 +282,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     """
     libs_file = "%s-libs" % name
     srclibs = "%s-as-libs" % name
-    runfiles = "%s-runfiles" % name
+    runfiles_srclibs = "%s-runfiles-srclibs" % name
     param_file = "%s-params.ld" % name
     dirs_file = "%s-search_dirs.ld" % name
     if executable:
@@ -333,9 +344,10 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     )
 
     # Expose the runfiles for linking the wrapper library.
-    _expose_runfiles(
-        name = runfiles,
+    _add_runfiles(
+        name = runfiles_srclibs,
         deps = srcs,
+        other_files = [srclibs],
         outputdir = solibdir,
         **kwargs
     )
@@ -352,7 +364,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
             param_file,
             "-T$(location %s)" % dirs_file,
         ],
-        srcs = [runfiles, srclibs],
+        srcs = [runfiles_srclibs],
         deps = [param_file, dirs_file],
         **kwargs
     )
@@ -360,7 +372,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     # Copy the libraries to a folder and zip them
     native.genrule(
         name = name,
-        srcs = [libs_file, wrapper_lib, runfiles, srclibs],
+        srcs = [libs_file, wrapper_lib, runfiles_srclibs],
         cmd = """
         set -euo pipefail
         libs_file="$(location %s)"
