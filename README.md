@@ -39,8 +39,9 @@ Bazel build system, e.g. as follows:
 ```
 cc_binary(
   name = "hello",
-  srcs = ["*.c"],
-  linkedshared = 1,
+  srcs = ["main.c"],
+  linkopts = ["-shared"],
+  deps = ...
 )
 
 binary_closure(
@@ -63,9 +64,10 @@ publish and deploy native binaries.
 
 ```
 cc_binary(
-  name = "hello.so",
-  srcs = ["*.c"],
-  linkedshared = 1,
+  name = "hello",
+  srcs = ["main.c"],
+  linkopts = ["-shared"],
+  deps = ...
 )
 
 library_closure(
