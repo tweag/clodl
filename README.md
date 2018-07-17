@@ -50,6 +50,26 @@ binary_closure(
 )
 ```
 
+With Haskell:
+
+```
+haskell_binary(
+    name = "hello-hs",
+    srcs = ["src/test/haskell/hello/Main.hs"],
+    compiler_flags = [
+        "-threaded",
+        "-dynamic",
+        "-pie",
+    ],
+	...
+)
+
+binary_closure(
+  name = "hello-closure-bin",
+  src = "hello-hs",
+)
+```
+
 The [BUILD file](BUILD) has a complete example.
 
 [bazel]: https://bazel.build
