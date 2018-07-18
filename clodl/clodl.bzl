@@ -430,25 +430,33 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
 def binary_closure(name, src, excludes = [], **kwargs):
     """
     Produces a zip file containing a closure of all the shared libraries needed
-    to load the given executable. The zipfile is prepended with a script that
-    uncompresses the zip file and executes the binary.
+    to load the given position independent executable or shared library defining
+    symbol main. The zipfile is prepended with a script that uncompresses the
+    zip file and executes main.
 
     Args:
       name: A unique name for this rule
-      src: The executable binary
+      src: The position independent executable or a shared library.
       excludes: Same purpose as in library_closure
 
     Example:
       ```bzl
+      cc_binary(
+          name = "hello-cc",
+          srcs = ["src/test/cc/hello/main.c"],
+          linkopts = ["-pie", "-Wl,--dynamic-list", "main-symbol-list.ld"],
+          deps = ["main-symbol-list.ld"],
+      )
+
       binary_closure(
           name = "closure"
-          src = ":exe"
+          src = "hello-cc"
           excludes = ["libexclude_this\.so", "libthis_too\.so"]
           ...
       )
       ```
       The zip file closure is created, with all the
-      shared libraries required by ":exe" except those in excludes.
+      shared libraries required by "hello-cc" except those in excludes.
     """
     zip_name = "%s-closure" % name
     library_closure(

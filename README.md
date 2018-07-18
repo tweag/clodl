@@ -14,10 +14,10 @@ of the result as a poor man's container image. Compared to containers:
 
 Clodl can be used to build binary closures or library closures.
 
-A binary closure is made from an executable and can be executed.
-In practice, the binary closure is a zip file appended to a script
-that uncompresses the file to a temporary folder and has the
-executable invoked.
+A binary closure is made from an executable or a shared library
+defining symbol `main` and can be executed. In practice, the binary
+closure is a zip file appended to a script that uncompresses the file
+to a temporary folder and has `main` invoked.
 
 A library closure is a zip file containing the shared libraries in
 the closure, and provides a top-level library which depends on all of
@@ -58,9 +58,9 @@ haskell_binary(
     name = "hello-hs",
     srcs = ["src/test/haskell/hello/Main.hs"],
     compiler_flags = [
-        "-threaded",
         "-dynamic",
         "-pie",
+        "-rdynamic", # or "-Wl,--dynamic-list", "main-symbol-list.ld"
     ],
 	...
 )
@@ -71,7 +71,7 @@ binary_closure(
 )
 ```
 
-The [BUILD file](BUILD) has a complete example.
+The [BUILD file](BUILD) has complete examples.
 
 [bazel]: https://bazel.build
 [bazel-rules]: https://docs.bazel.build/versions/master/skylark/rules.html

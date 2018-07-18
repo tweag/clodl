@@ -120,6 +120,20 @@ binary_closure(
     src = "libhello-cc-norunfiles.so",
 )
 
+cc_binary(
+    name = "hello-cc-pie",
+    srcs = ["src/test/cc/hello/main.c"],
+    linkopts = ["-pie", "-Wl,--dynamic-list", "main-symbol-list.ld"],
+	deps = ["main-symbol-list.ld"],
+    testonly = True,
+)
+
+binary_closure(
+    name = "clotestbin-cc-pie",
+    testonly = True,
+    src = "hello-cc-pie",
+)
+
 sh_binary(
     name = "deps",
     srcs = ["src/main/bash/deps.sh"],
