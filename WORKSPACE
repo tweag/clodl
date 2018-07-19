@@ -2,8 +2,8 @@ workspace(name = "io_tweag_clodl")
 
 http_archive(
     name = "io_tweag_rules_haskell",
-    strip_prefix = "rules_haskell-413a76b6ec8a116225e395425248ba8c9cd5fec1",
-    urls = ["https://github.com/tweag/rules_haskell/archive/413a76b6ec8a116225e395425248ba8c9cd5fec1.tar.gz"],
+    strip_prefix = "rules_haskell-5c94b23107809026d7e6de25a891bd3874dbc522",
+    urls = ["https://github.com/tweag/rules_haskell/archive/5c94b23107809026d7e6de25a891bd3874dbc522.tar.gz"],
 )
 
 load("@io_tweag_rules_haskell//haskell:repositories.bzl", "haskell_repositories")
@@ -38,8 +38,8 @@ load(
 
 nixpkgs_git_repository(
     name = "nixpkgs",
-    # Nixpkgs from 2018-02-23
-    revision = "1fa2503f9dba814eb23726a25642d2180ce791c3",
+    # Nixpkgs from 2018-07-19
+    revision = "80d44926bf7099f2bc77ca5e9288c0c0ca35e99d",
 )
 
 prebuilt_packages = [
