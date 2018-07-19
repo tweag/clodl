@@ -60,7 +60,7 @@ haskell_binary(
     compiler_flags = [
         "-dynamic",
         "-pie",
-        "-rdynamic", # or "-Wl,--dynamic-list", "main-symbol-list.ld"
+        "-rdynamic", # or "-optl-Wl,--dynamic-list=main-symbol-list.ld"
     ],
 	...
 )

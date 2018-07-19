@@ -19,13 +19,20 @@ haskell_toolchain(
 )
 
 cc_library(
-    name = "bootstrap",
+    name = "bootstrap-bz",
     srcs = ["src/main/cc/bootstrap.c"],
     copts = ["-std=c99"],
     deps = [
         "@ghc//:include",
         "@openjdk//:include",
     ],
+)
+
+cc_binary(
+    name = "libbootstrap.so",
+    deps = ["bootstrap-bz"],
+    linkshared = 1,
+    linkstatic = 0,
 )
 
 java_library(
@@ -43,16 +50,17 @@ haskell_binary(
         "-threaded",
         "-dynamic",
         "-pie",
+        "-optl-Wl,--dynamic-list=main-symbol-list.ld",
     ],
+    extra_srcs = ["main-symbol-list.ld"],
     prebuilt_dependencies = ["base"],
     src_strip_prefix = "src/test/haskell/hello",
-    deps = [":bootstrap"],
 )
 
 library_closure(
     name = "clotest",
     testonly = True,
-    srcs = ["hello-hs"],
+    srcs = ["hello-hs", "libbootstrap.so"],
     excludes = [
         "ld-linux-x86-64\.so.*",
         "libgcc_s\.so.*",
@@ -123,7 +131,7 @@ binary_closure(
 cc_binary(
     name = "hello-cc-pie",
     srcs = ["src/test/cc/hello/main.c"],
-    linkopts = ["-pie", "-Wl,--dynamic-list", "main-symbol-list.ld"],
+    linkopts = ["-pie", "-Wl,--dynamic-list=main-symbol-list.ld"],
 	deps = ["main-symbol-list.ld"],
     testonly = True,
 )
