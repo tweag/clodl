@@ -42,19 +42,6 @@ nixpkgs_git_repository(
     revision = "80d44926bf7099f2bc77ca5e9288c0c0ca35e99d",
 )
 
-prebuilt_packages = [
-    "base",
-    "bytestring",
-    "directory",
-    "filepath",
-    "process",
-    "regex-tdfa",
-    "temporary",
-    "text",
-    "unix",
-    "zip-archive",
-]
-
 nixpkgs_package(
     name = "ghc",
     build_file_content = """
@@ -74,12 +61,7 @@ cc_library(
     nix_file_content = """
 let pkgs = import <nixpkgs> {{}};
 in pkgs.haskell.packages.ghc822.ghcWithPackages (p: with p; [{0}])
-""".format(" ".join(prebuilt_packages)),
-    repository = "@nixpkgs",
-)
-
-nixpkgs_package(
-    name = "gcc",
+""".format("base"),
     repository = "@nixpkgs",
 )
 
