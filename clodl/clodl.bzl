@@ -361,7 +361,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         linkshared = not executable,
         linkopts = [
             "-Wl,-rpath=$$ORIGIN",
-            param_file,
+            "$(location %s)" % param_file,
             "-T$(location %s)" % dirs_file,
         ],
         srcs = [runfiles_srclibs],
