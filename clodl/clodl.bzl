@@ -396,9 +396,9 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
             fi
         done
         cp $(SRCS) "$${libs[@]}" $$tmpdir
-    
+
         mkdir -p "$$outputdir"
-        zip -qjr $@ $$tmpdir
+        zip -X -qjr $@ $$tmpdir
         rm -rf $$tmpdir
 
         # Check that the excluded libraries have been really excluded.
