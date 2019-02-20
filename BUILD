@@ -5,6 +5,7 @@ load(
     "haskell_binary",
     "haskell_test",
     "haskell_toolchain",
+    "haskell_import",
 )
 load(
     "@io_tweag_clodl//clodl:clodl.bzl",
@@ -40,8 +41,8 @@ java_library(
     srcs = glob(["src/main/java/**/*.java"]),
 )
 
-# TODO should be haskell_binary. Blocked on
-# https://github.com/tweag/rules_haskell/issues/179.
+
+haskell_import(name = "base")
 haskell_binary(
     name = "hello-hs",
     testonly = True,
@@ -53,7 +54,7 @@ haskell_binary(
         "-optl-Wl,--dynamic-list=main-symbol-list.ld",
     ],
     extra_srcs = ["main-symbol-list.ld"],
-    prebuilt_dependencies = ["base"],
+    deps = [":base"],
     src_strip_prefix = "src/test/haskell/hello",
 )
 
