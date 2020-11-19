@@ -1,11 +1,10 @@
 package(default_visibility = ["//visibility:public"])
 
 load(
-    "@io_tweag_rules_haskell//haskell:haskell.bzl",
+    "@rules_haskell//haskell:defs.bzl",
     "haskell_binary",
     "haskell_test",
-    "haskell_toolchain",
-    "haskell_import",
+    "haskell_toolchain_library",
 )
 load(
     "@io_tweag_clodl//clodl:clodl.bzl",
@@ -13,18 +12,12 @@ load(
     "binary_closure",
 )
 
-haskell_toolchain(
-    name = "ghc",
-    tools = "@ghc//:bin",
-    version = "8.2.2",
-)
-
 cc_library(
     name = "bootstrap-bz",
     srcs = ["src/main/cc/bootstrap.c"],
     copts = ["-std=c99"],
     deps = [
-        "@ghc//:include",
+        "@rules_haskell_ghc_nixpkgs//:include",
         "@openjdk//:include",
     ],
 )
@@ -42,7 +35,7 @@ java_library(
 )
 
 
-haskell_import(name = "base")
+haskell_toolchain_library(name = "base", package = "base")
 haskell_binary(
     name = "hello-hs",
     testonly = True,

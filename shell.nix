@@ -6,9 +6,12 @@ mkShell {
   buildInputs = [
     bazel
     binutils
+    cacert
+    git
     nix
+    openjdk11
+    python3
     pax-utils
-    python
     unzip
     which
     zip

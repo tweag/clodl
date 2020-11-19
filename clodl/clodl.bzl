@@ -1,6 +1,6 @@
 """Library and binary closures"""
 
-load("@bazel_skylib//:lib.bzl", "paths")
+load("@bazel_skylib//lib:paths.bzl", "paths")
 
 def _rename_as_solib_impl(ctx):
     """Renames files as libraries."""
@@ -99,7 +99,8 @@ def _shared_lib_paths_impl(ctx):
     args.add(libs_file)
     ctx.actions.run_shell(
         outputs = [libs_file],
-        inputs = depset([ctx.executable._deps_tool, bash, grep, ldd, scanelf], transitive = [runfiles, files]),
+        inputs = depset([bash, grep, ldd, scanelf], transitive = [runfiles, files]),
+        tools = [ctx.executable._deps_tool],
         arguments = [args],
         command = """
         set -eo pipefail
@@ -174,7 +175,7 @@ def _add_runfiles_impl(ctx):
         output_libs[f.basename] = ctx.actions.declare_file(paths.join(outputdir, f.basename))
 
     for dep in ctx.attr.deps:
-        for lib in dep.default_runfiles.files:
+        for lib in dep.default_runfiles.files.to_list():
             # Runfiles might appear in inputs too. We don't duplicate them.
             if files.get(lib.basename, None) == None:
                 # Skip non-library files.
@@ -241,8 +242,27 @@ Example:
 """
 
 def library_closure(name, srcs, outzip = "", excludes = [], executable = False, **kwargs):
-    """Produces a zip file containing a closure of all the shared
+    """
+    Produce a closure of the given shared libraries.
+
+    Produces a zip file containing a closure of all the shared
     libraries needed to load the given shared libraries.
+
+    Example:
+
+      ```bzl
+      library_closure(
+          name = "closure"
+          srcs = [":lib1", ":lib2"]
+          excludes = ["libexclude_this\.so", "libthis_too\.so"]
+          outzip = "file.zip"
+          ...
+      )
+      ```
+
+      The zip file `<generated_dir>/file.zip` is created, with all the
+      shared libraries required by `:lib1` and `:lib2` except those in
+      excludes. `<generated_dir>` is a name which depends on `name`.
 
     Args:
       name: A unique name for this rule.
@@ -262,22 +282,6 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
                   closure (`<name>_wrapper`). If executable is False, the wrapper
                   is just a shared library `lib<name>_wrapper.so` that depends on
                   all the other libraries in the closure.
-
-    Example:
-
-      ```bzl
-      library_closure(
-          name = "closure"
-          srcs = [":lib1", ":lib2"]
-          excludes = ["libexclude_this\.so", "libthis_too\.so"]
-          outzip = "file.zip"
-          ...
-      )
-      ```
-
-      The zip file `<generated_dir>/file.zip` is created, with all the
-      shared libraries required by `:lib1` and `:lib2` except those in
-      excludes. `<generated_dir>` is a name which depends on `name`.
 
     """
     libs_file = "%s-libs" % name
@@ -429,15 +433,12 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
 
 def binary_closure(name, src, excludes = [], **kwargs):
     """
+    Produce a closure of a given position independent executable.
+
     Produces a zip file containing a closure of all the shared libraries needed
     to load the given position independent executable or shared library defining
     symbol main. The zipfile is prepended with a script that uncompresses the
     zip file and executes main.
-
-    Args:
-      name: A unique name for this rule
-      src: The position independent executable or a shared library.
-      excludes: Same purpose as in library_closure
 
     Example:
       ```bzl
@@ -457,6 +458,12 @@ def binary_closure(name, src, excludes = [], **kwargs):
       ```
       The zip file closure is created, with all the
       shared libraries required by "hello-cc" except those in excludes.
+
+    Args:
+      name: A unique name for this rule
+      src: The position independent executable or a shared library.
+      excludes: Same purpose as in library_closure
+
     """
     zip_name = "%s-closure" % name
     library_closure(
