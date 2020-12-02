@@ -228,6 +228,10 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     )
 
     # Get the paths of srcs dependencies.
+    # It would be simpler if we could give the shared libraries
+    # as outputs. Unfortunately, that information is currently
+    # discovered when running the actions and isn't available when
+    # wiring them.
     _shared_lib_paths(
         name = libs_file,
         srcs = srcs,
@@ -236,6 +240,11 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     )
 
     # Produce the arguments for linking the wrapper library
+    #
+    # cc_binary links any libraries passed to it in srcs. But
+    # we need these extra arguments to link all of the dependencies
+    # that may reside outside the sandbox.
+    #
     # We produce two files:
     # * params_file contains the dependencies names, and
     # * dirs_file contains the paths in which to look for dependencies.
