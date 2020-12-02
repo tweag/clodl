@@ -5,7 +5,6 @@ jobs:
     docker:
       - image: nixos/nix
     working_directory: ~/sparkle
-    resource_class: large
     environment:
       - NIXRUN: nix-shell --pure --run
     steps:
