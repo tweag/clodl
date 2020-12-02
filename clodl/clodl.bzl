@@ -159,88 +159,6 @@ def _mangle_dir(name):
     components = [c for c in components if c]
     return "/".join(components).replace("_", "_U").replace("/", "_S")
 
-def _add_runfiles_impl(ctx):
-    """Produces as output all the files needed to load an executable or library."""
-    outputdir = ctx.attr.outputdir
-
-    output_libs = {}
-    input_libs = {}
-
-    files = {}
-    for f in ctx.files.deps:
-        files[f.basename] = f
-    for f in ctx.files.other_files:
-        files[f.basename] = f
-        input_libs[f.basename] = f
-        output_libs[f.basename] = ctx.actions.declare_file(paths.join(outputdir, f.basename))
-
-    for dep in ctx.attr.deps:
-        for lib in dep.default_runfiles.files.to_list():
-            # Runfiles might appear in inputs too. We don't duplicate them.
-            if files.get(lib.basename, None) == None:
-                # Skip non-library files.
-                if lib.basename.endswith(".so") or lib.basename.find(".so.") != -1:
-                    input_libs[lib.basename] = lib
-                    output_libs[lib.basename] = ctx.actions.declare_file(paths.join(outputdir, lib.basename))
-
-    input_libs_files = input_libs.values()
-    output_libs_files = output_libs.values()
-    args = ctx.actions.args()
-    args.add(output_libs_files[0].dirname if len(input_libs) > 0 else outputdir)
-    args.add_joined(input_libs_files, join_with = " ")
-    ctx.actions.run_shell(
-        outputs = output_libs_files,
-        inputs = input_libs_files,
-        arguments = [args],
-        command = """
-        set -eo pipefail
-        outputdir="$1"
-        runfiles="$2"
-
-        mkdir -p $outputdir
-        for f in $runfiles
-        do
-            ln -s $(realpath $f) $outputdir/$(basename $f)
-        done
-    """,
-    )
-
-    return DefaultInfo(files = depset(output_libs_files))
-
-_add_runfiles = rule(
-    _add_runfiles_impl,
-    attrs = {
-        "deps": attr.label_list(),
-        "other_files": attr.label_list(),
-        "outputdir": attr.string(
-          doc = "Where the outputs are placed.",
-          mandatory = True
-        ),
-    },
-)
-"""Produces as output all the files needed to load an executable or library.
-
-  The runfiles are output together with the files in "other_files".
-  This is to ensure that the rule always produces some output to keep
-  bazel checks happy.
-
-Example:
-
-  ```bzl
-  _expose_runfiles(
-      name = "lib_runfiles"
-      deps = [":lib"]
-      other_files = ["a", "b"]
-      outputdir = "dir"
-  )
-  ```
-
-  The outputs are placed in the directory `dir`. The outputs need to
-  be placed in a new directory or bazel will complain of conflicts
-  with the rules that initially created the runfiles.
-
-"""
-
 def library_closure(name, srcs, outzip = "", excludes = [], executable = False, **kwargs):
     """
     Produce a closure of the given shared libraries.
@@ -286,7 +204,6 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     """
     libs_file = "%s-libs" % name
     srclibs = "%s-as-libs" % name
-    runfiles_srclibs = "%s-runfiles-srclibs" % name
     param_file = "%s-params.ld" % name
     dirs_file = "%s-search_dirs.ld" % name
     if executable:
@@ -333,26 +250,19 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         param_file=$(location %s)
         dirs_file=$(location %s)
         cat $$libs_file \
+          | cut -f 2 \
           | sed "s/\\(.*\\)\\/.*/SEARCH_DIR(\\1)/" \
           | sort | uniq \
           > $$dirs_file
         echo "INPUT(" > $$param_file
         cat $$libs_file \
+          | cut -f 2 \
           | sed "s/.*\\/\\(.*\\)/\\1/" \
           | sort | uniq \
           >> $$param_file
         echo ")" >> $$param_file
         """ % (param_file, dirs_file),
         outs = [param_file, dirs_file],
-        **kwargs
-    )
-
-    # Expose the runfiles for linking the wrapper library.
-    _add_runfiles(
-        name = runfiles_srclibs,
-        deps = srcs,
-        other_files = [srclibs],
-        outputdir = solibdir,
         **kwargs
     )
 
@@ -368,7 +278,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
             "$(location %s)" % param_file,
             "-T$(location %s)" % dirs_file,
         ],
-        srcs = [runfiles_srclibs],
+        srcs = [srclibs],
         deps = [param_file, dirs_file],
         **kwargs
     )
@@ -376,30 +286,36 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     # Copy the libraries to a folder and zip them
     native.genrule(
         name = name,
-        srcs = [libs_file, wrapper_lib, runfiles_srclibs],
+        srcs = [libs_file, wrapper_lib, srclibs],
         cmd = """
         set -euo pipefail
         libs_file="$(location %s)"
         outputdir="%s"
         excludes="%s"
+        srclibs="$(locations %s)"
+        wrapper_lib="$(location %s)"
         tmpdir=$$(mktemp -d)
 
-        # Put SRCS names in an associative array
+        # Put srclibs and the wrapper_lib names in an associative array
         declare -A srcnames
-        for i in $(SRCS)
+        for i in $${wrapper_lib} $${srclibs}
         do
             srcnames["$${i##*/}"]=1
         done
         # Keep the libraries which are not in SRCS
         declare -a libs=()
-        for i in $$(cat $$libs_file)
+        while read i
         do
             if [ ! $${srcnames["$${i##*/}"]+defined} ]
             then
-                libs+=($$i)
+                echo "$$i" | {
+                    read -r -d $$'\t' name
+                    read -r path
+                    cp "$$path" "$$tmpdir/$$name"
+                }
             fi
-        done
-        cp $(SRCS) "$${libs[@]}" $$tmpdir
+        done < <(cat $$libs_file)
+        cp "$${wrapper_lib}" $${srclibs} $$tmpdir
 
         mkdir -p "$$outputdir"
         zip -X -qjr $@ $$tmpdir
@@ -426,7 +342,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         fi
 
         rm -rf $$tmpx_file
-        """ % (libs_file, outputdir, "\n".join(excludes)),
+        """ % (libs_file, outputdir, "\n".join(excludes), srclibs, wrapper_lib),
         outs = [outzip],
         **kwargs
     )
