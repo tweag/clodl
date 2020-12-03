@@ -73,7 +73,7 @@ filegroup(
     srcs = glob(["bin/*"]),
 )
 
-cc_library( 
+cc_library(
     name = "include",
     hdrs = glob(["lib/ghc-*/include/**/*.h"]),
     strip_include_prefix = glob(["lib/ghc-*/include"], exclude_directories=0)[0],
