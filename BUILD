@@ -35,7 +35,7 @@ java_library(
 )
 
 
-haskell_toolchain_library(name = "base", package = "base")
+haskell_toolchain_library(name = "base")
 haskell_binary(
     name = "hello-hs",
     testonly = True,
