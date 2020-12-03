@@ -38,9 +38,8 @@ _rename_as_solib = rule(
           mandatory = True,
         ),
     },
-)
-"""Renames files as shared libraries to make them suitable for linking
-with `cc_binary`.
+	doc = """
+Renames files as shared libraries to make them suitable for linking with `cc_binary`.
 
 This is useful for linking executables built with `-pie`.
 
@@ -61,7 +60,8 @@ Example:
 
   Note: Runfiles are not propagated.
 
-"""
+""",
+)
 
 def _shared_lib_paths_impl(ctx):
     """Collects the list of shared library paths of an executable or library."""
@@ -130,9 +130,8 @@ _shared_lib_paths = rule(
             default = Label("//:deps"),
         ),
     },
-)
-"""Collects the list of shared library paths of an executable or
-library.
+    doc = """
+Collects the list of shared library paths of an executable or library.
 
 Produces a txt file containing the paths.
 
@@ -147,7 +146,8 @@ Example:
 
   The output is shared-libs.txt.
 
-"""
+""",
+)
 
 def _mangle_dir(name):
     """Creates a unique directory name from the repo name and package
