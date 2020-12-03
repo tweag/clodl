@@ -1,7 +1,8 @@
-load("@io_bazel_skydoc//skylark:skylark.bzl", "skylark_doc")
+load("@io_bazel_stardoc//stardoc:stardoc.bzl", "stardoc")
 
-skylark_doc(
+stardoc(
     name = "docs",
-    srcs = ["//clodl:clodl.bzl"],
-    format = "html",
+    input = "//clodl:clodl.bzl",
+    out = "doc.md",
+    deps = ["@bazel_skylib//lib:paths"],
 )

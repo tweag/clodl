@@ -3,11 +3,14 @@
 # deps.sh FILES [-- REGEXES]
 #
 # Produces the list of paths to dependencies of the given shared libraries.
+# One dependency is printed per line. For each dependency, the dependency
+# name comes first, followed by TAB, followed by the path to the shared
+# library.
 #
 # Dependencies and its transitive dependencies can be excluded
 # from the listing by adding grep-style regular expressions following --.
 #
-# Requires ldd and objdump to be on the path.
+# Requires ldd and scanelf to be on the path.
 set -euo pipefail
 
 # tops contains the libraries to analyze.
@@ -36,7 +39,7 @@ collect_lib_paths() {
     libs_str=$(ldd "${tops[@]}")
 
     # Fail if there are any missing libraries
-    if echo "$libs_str" | grep 'not found'
+    if echo "$libs_str" | grep 'not found' 1>&2
     then
         exit 1
     fi
@@ -51,7 +54,7 @@ collect_lib_paths() {
 }
 
 # excluded_libraries lib1 lib2 lib3 ...
-# Prints the excluded libraries in the command line that match any
+# Prints the excluded libraries in stdout that match any
 # of the regexes in excludes.
 excluded_libraries() {
     if [ ${#excludes[@]} -gt 0 ]
@@ -74,10 +77,10 @@ read_args "$@"
 
 # paths is an associative array mapping each library name to its path. 
 declare -A paths
-for lib in $(collect_lib_paths)
+while read lib
 do
     paths["${lib##*/}"]="$lib"
-done
+done < <(collect_lib_paths)
 
 # needed is an associative array mapping paths to a list of names of
 # needed libraries.
@@ -103,7 +106,7 @@ traverse_deps() {
     do
         if [ ! ${dont_print["$lib"]+defined} ]
         then
-           echo "${paths["$lib"]}"
+           echo -en "$lib\t"; realpath ${paths["$lib"]}
            dont_print["$lib"]=1
            traverse_deps "${paths["$lib"]}"
         fi

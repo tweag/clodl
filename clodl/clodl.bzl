@@ -1,6 +1,6 @@
 """Library and binary closures"""
 
-load("@bazel_skylib//:lib.bzl", "paths")
+load("@bazel_skylib//lib:paths.bzl", "paths")
 
 def _rename_as_solib_impl(ctx):
     """Renames files as libraries."""
@@ -38,9 +38,8 @@ _rename_as_solib = rule(
           mandatory = True,
         ),
     },
-)
-"""Renames files as shared libraries to make them suitable for linking
-with `cc_binary`.
+	doc = """
+Renames files as shared libraries to make them suitable for linking with `cc_binary`.
 
 This is useful for linking executables built with `-pie`.
 
@@ -61,7 +60,8 @@ Example:
 
   Note: Runfiles are not propagated.
 
-"""
+""",
+)
 
 def _shared_lib_paths_impl(ctx):
     """Collects the list of shared library paths of an executable or library."""
@@ -99,7 +99,8 @@ def _shared_lib_paths_impl(ctx):
     args.add(libs_file)
     ctx.actions.run_shell(
         outputs = [libs_file],
-        inputs = depset([ctx.executable._deps_tool, bash, grep, ldd, scanelf], transitive = [runfiles, files]),
+        inputs = depset([bash, grep, ldd, scanelf], transitive = [runfiles, files]),
+        tools = [ctx.executable._deps_tool],
         arguments = [args],
         command = """
         set -eo pipefail
@@ -129,9 +130,8 @@ _shared_lib_paths = rule(
             default = Label("//:deps"),
         ),
     },
-)
-"""Collects the list of shared library paths of an executable or
-library.
+    doc = """
+Collects the list of shared library paths of an executable or library.
 
 Produces a txt file containing the paths.
 
@@ -146,7 +146,8 @@ Example:
 
   The output is shared-libs.txt.
 
-"""
+""",
+)
 
 def _mangle_dir(name):
     """Creates a unique directory name from the repo name and package
@@ -158,91 +159,28 @@ def _mangle_dir(name):
     components = [c for c in components if c]
     return "/".join(components).replace("_", "_U").replace("/", "_S")
 
-def _add_runfiles_impl(ctx):
-    """Produces as output all the files needed to load an executable or library."""
-    outputdir = ctx.attr.outputdir
-
-    output_libs = {}
-    input_libs = {}
-
-    files = {}
-    for f in ctx.files.deps:
-        files[f.basename] = f
-    for f in ctx.files.other_files:
-        files[f.basename] = f
-        input_libs[f.basename] = f
-        output_libs[f.basename] = ctx.actions.declare_file(paths.join(outputdir, f.basename))
-
-    for dep in ctx.attr.deps:
-        for lib in dep.default_runfiles.files:
-            # Runfiles might appear in inputs too. We don't duplicate them.
-            if files.get(lib.basename, None) == None:
-                # Skip non-library files.
-                if lib.basename.endswith(".so") or lib.basename.find(".so.") != -1:
-                    input_libs[lib.basename] = lib
-                    output_libs[lib.basename] = ctx.actions.declare_file(paths.join(outputdir, lib.basename))
-
-    input_libs_files = input_libs.values()
-    output_libs_files = output_libs.values()
-    args = ctx.actions.args()
-    args.add(output_libs_files[0].dirname if len(input_libs) > 0 else outputdir)
-    args.add_joined(input_libs_files, join_with = " ")
-    ctx.actions.run_shell(
-        outputs = output_libs_files,
-        inputs = input_libs_files,
-        arguments = [args],
-        command = """
-        set -eo pipefail
-        outputdir="$1"
-        runfiles="$2"
-
-        mkdir -p $outputdir
-        for f in $runfiles
-        do
-            ln -s $(realpath $f) $outputdir/$(basename $f)
-        done
-    """,
-    )
-
-    return DefaultInfo(files = depset(output_libs_files))
-
-_add_runfiles = rule(
-    _add_runfiles_impl,
-    attrs = {
-        "deps": attr.label_list(),
-        "other_files": attr.label_list(),
-        "outputdir": attr.string(
-          doc = "Where the outputs are placed.",
-          mandatory = True
-        ),
-    },
-)
-"""Produces as output all the files needed to load an executable or library.
-
-  The runfiles are output together with the files in "other_files".
-  This is to ensure that the rule always produces some output to keep
-  bazel checks happy.
-
-Example:
-
-  ```bzl
-  _expose_runfiles(
-      name = "lib_runfiles"
-      deps = [":lib"]
-      other_files = ["a", "b"]
-      outputdir = "dir"
-  )
-  ```
-
-  The outputs are placed in the directory `dir`. The outputs need to
-  be placed in a new directory or bazel will complain of conflicts
-  with the rules that initially created the runfiles.
-
-"""
-
 def library_closure(name, srcs, outzip = "", excludes = [], executable = False, **kwargs):
-    """Produces a zip file containing a closure of all the shared
+    """
+    Produce a closure of the given shared libraries.
+
+    Produces a zip file containing a closure of all the shared
     libraries needed to load the given shared libraries.
+
+    Example:
+
+      ```bzl
+      library_closure(
+          name = "closure"
+          srcs = [":lib1", ":lib2"]
+          excludes = ["libexclude_this\.so", "libthis_too\.so"]
+          outzip = "file.zip"
+          ...
+      )
+      ```
+
+      The zip file `<generated_dir>/file.zip` is created, with all the
+      shared libraries required by `:lib1` and `:lib2` except those in
+      excludes. `<generated_dir>` is a name which depends on `name`.
 
     Args:
       name: A unique name for this rule.
@@ -263,26 +201,9 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
                   is just a shared library `lib<name>_wrapper.so` that depends on
                   all the other libraries in the closure.
 
-    Example:
-
-      ```bzl
-      library_closure(
-          name = "closure"
-          srcs = [":lib1", ":lib2"]
-          excludes = ["libexclude_this\.so", "libthis_too\.so"]
-          outzip = "file.zip"
-          ...
-      )
-      ```
-
-      The zip file `<generated_dir>/file.zip` is created, with all the
-      shared libraries required by `:lib1` and `:lib2` except those in
-      excludes. `<generated_dir>` is a name which depends on `name`.
-
     """
     libs_file = "%s-libs" % name
     srclibs = "%s-as-libs" % name
-    runfiles_srclibs = "%s-runfiles-srclibs" % name
     param_file = "%s-params.ld" % name
     dirs_file = "%s-search_dirs.ld" % name
     if executable:
@@ -307,6 +228,10 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     )
 
     # Get the paths of srcs dependencies.
+    # It would be simpler if we could give the shared libraries
+    # as outputs. Unfortunately, that information is currently
+    # discovered when running the actions and isn't available when
+    # wiring them.
     _shared_lib_paths(
         name = libs_file,
         srcs = srcs,
@@ -315,6 +240,11 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     )
 
     # Produce the arguments for linking the wrapper library
+    #
+    # cc_binary links any libraries passed to it in srcs. But
+    # we need these extra arguments to link all of the dependencies
+    # that may reside outside the sandbox.
+    #
     # We produce two files:
     # * params_file contains the dependencies names, and
     # * dirs_file contains the paths in which to look for dependencies.
@@ -329,26 +259,19 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         param_file=$(location %s)
         dirs_file=$(location %s)
         cat $$libs_file \
+          | cut -f 2 \
           | sed "s/\\(.*\\)\\/.*/SEARCH_DIR(\\1)/" \
           | sort | uniq \
           > $$dirs_file
         echo "INPUT(" > $$param_file
         cat $$libs_file \
+          | cut -f 2 \
           | sed "s/.*\\/\\(.*\\)/\\1/" \
           | sort | uniq \
           >> $$param_file
         echo ")" >> $$param_file
         """ % (param_file, dirs_file),
         outs = [param_file, dirs_file],
-        **kwargs
-    )
-
-    # Expose the runfiles for linking the wrapper library.
-    _add_runfiles(
-        name = runfiles_srclibs,
-        deps = srcs,
-        other_files = [srclibs],
-        outputdir = solibdir,
         **kwargs
     )
 
@@ -364,7 +287,7 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
             "$(location %s)" % param_file,
             "-T$(location %s)" % dirs_file,
         ],
-        srcs = [runfiles_srclibs],
+        srcs = [srclibs],
         deps = [param_file, dirs_file],
         **kwargs
     )
@@ -372,30 +295,36 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
     # Copy the libraries to a folder and zip them
     native.genrule(
         name = name,
-        srcs = [libs_file, wrapper_lib, runfiles_srclibs],
+        srcs = [libs_file, wrapper_lib, srclibs],
         cmd = """
         set -euo pipefail
         libs_file="$(location %s)"
         outputdir="%s"
         excludes="%s"
+        srclibs="$(locations %s)"
+        wrapper_lib="$(location %s)"
         tmpdir=$$(mktemp -d)
 
-        # Put SRCS names in an associative array
+        # Put srclibs and the wrapper_lib names in an associative array
         declare -A srcnames
-        for i in $(SRCS)
+        for i in $${wrapper_lib} $${srclibs}
         do
             srcnames["$${i##*/}"]=1
         done
         # Keep the libraries which are not in SRCS
         declare -a libs=()
-        for i in $$(cat $$libs_file)
+        while read i
         do
             if [ ! $${srcnames["$${i##*/}"]+defined} ]
             then
-                libs+=($$i)
+                echo "$$i" | {
+                    read -r -d $$'\t' name
+                    read -r path
+                    cp "$$path" "$$tmpdir/$$name"
+                }
             fi
-        done
-        cp $(SRCS) "$${libs[@]}" $$tmpdir
+        done < <(cat $$libs_file)
+        cp "$${wrapper_lib}" $${srclibs} $$tmpdir
 
         mkdir -p "$$outputdir"
         zip -X -qjr $@ $$tmpdir
@@ -422,22 +351,19 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
         fi
 
         rm -rf $$tmpx_file
-        """ % (libs_file, outputdir, "\n".join(excludes)),
+        """ % (libs_file, outputdir, "\n".join(excludes), srclibs, wrapper_lib),
         outs = [outzip],
         **kwargs
     )
 
 def binary_closure(name, src, excludes = [], **kwargs):
     """
+    Produce a closure of a given position independent executable.
+
     Produces a zip file containing a closure of all the shared libraries needed
     to load the given position independent executable or shared library defining
     symbol main. The zipfile is prepended with a script that uncompresses the
     zip file and executes main.
-
-    Args:
-      name: A unique name for this rule
-      src: The position independent executable or a shared library.
-      excludes: Same purpose as in library_closure
 
     Example:
       ```bzl
@@ -457,6 +383,12 @@ def binary_closure(name, src, excludes = [], **kwargs):
       ```
       The zip file closure is created, with all the
       shared libraries required by "hello-cc" except those in excludes.
+
+    Args:
+      name: A unique name for this rule
+      src: The position independent executable or a shared library.
+      excludes: Same purpose as in library_closure
+
     """
     zip_name = "%s-closure" % name
     library_closure(

@@ -110,7 +110,8 @@ java_binary(
 
 **Requirements:**
 * The [Bazel][bazel] build tool;
-* the [Nix][nix] package manager.
+* the [Nix][nix] package manager;
+* the `scanelf` tool from the `pax-utils` package.
 
 To build and test:
 
@@ -125,8 +126,6 @@ $ bazel run hello-java
 
 Any shared library (`.so` file) or [position independent][wp-pic]
 (dynamically linked) executable (PIE) can be "closed" using `clodl`.
-
-On OS X, all executables are PIE.
 
 To create a PIE on Linux and other platforms, pass the `-pie` flag to
 the compiler. For example with GCC,

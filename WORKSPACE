@@ -1,22 +1,15 @@
 workspace(name = "io_tweag_clodl")
 
-http_archive(
-    name = "io_tweag_rules_haskell",
-    strip_prefix = "rules_haskell-5c94b23107809026d7e6de25a891bd3874dbc522",
-    urls = ["https://github.com/tweag/rules_haskell/archive/5c94b23107809026d7e6de25a891bd3874dbc522.tar.gz"],
-)
-
-load("@io_tweag_rules_haskell//haskell:repositories.bzl", "haskell_repositories")
-
-haskell_repositories()
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
-    name = "io_tweag_rules_nixpkgs",
-    strip_prefix = "rules_nixpkgs-0.2.1",
-    urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.2.1.tar.gz"],
+    name = "rules_haskell",
+    sha256 = "110073731641ab509780b609bbba144c249a2c2f1a10e469eec47e1ceacf4bad",
+    strip_prefix = "rules_haskell-6604b8c19701a64986e98d475959ff2a2e8a1379",
+    urls = ["https://github.com/tweag/rules_haskell/archive/6604b8c19701a64986e98d475959ff2a2e8a1379.tar.gz"],
 )
 
-new_http_archive(
+http_archive(
     name = "org_nixos_patchelf",
     build_file_content = """
 cc_binary(
@@ -30,6 +23,9 @@ cc_binary(
     urls = ["https://github.com/NixOS/patchelf/archive/1fa4d36fead44333528cbee4b5c04c207ce77ca4.tar.gz"],
 )
 
+load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
+haskell_repositories()
+
 load(
     "@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
     "nixpkgs_git_repository",
@@ -38,12 +34,37 @@ load(
 
 nixpkgs_git_repository(
     name = "nixpkgs",
-    # Nixpkgs from 2018-07-19
-    revision = "80d44926bf7099f2bc77ca5e9288c0c0ca35e99d",
+    revision = "e7ebd6be80d80000ea9efb62c589a827ba4c22dc",
 )
 
+load("@rules_haskell//haskell:nixpkgs.bzl", "haskell_register_ghc_nixpkgs")
+
 nixpkgs_package(
-    name = "ghc",
+    name = "glibc_locales",
+    attribute_path = "glibcLocales",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "locale-archive",
+    srcs = ["lib/locale/locale-archive"],
+)
+""",
+    repository = "@nixpkgs",
+)
+
+haskell_register_ghc_nixpkgs(
+    attribute_path = "haskell.compiler.ghc8102",
+    locale_archive = "@glibc_locales//:locale-archive",
+    repositories = {"nixpkgs": "@nixpkgs"},
+    version = "8.10.2",
+    compiler_flags = [
+        "-Werror",
+        "-Wall",
+        "-Wcompat",
+        "-Wincomplete-record-updates",
+        "-Wredundant-constraints",
+    ],
     build_file_content = """
 package(default_visibility = [ "//visibility:public" ])
 
@@ -58,14 +79,7 @@ cc_library(
     strip_include_prefix = glob(["lib/ghc-*/include"], exclude_directories=0)[0],
 )
 """,
-    nix_file_content = """
-let pkgs = import <nixpkgs> {{}};
-in pkgs.haskell.packages.ghc822.ghcWithPackages (p: with p; [{0}])
-""".format("base"),
-    repository = "@nixpkgs",
 )
-
-register_toolchains("//:ghc")
 
 nixpkgs_package(
     name = "openjdk",
@@ -81,20 +95,12 @@ cc_library(
     repository = "@nixpkgs",
 )
 
-# For Skydoc
 
 http_archive(
-    name = "io_bazel_rules_sass",
-    strip_prefix = "rules_sass-0.0.3",
-    urls = ["https://github.com/bazelbuild/rules_sass/archive/0.0.3.tar.gz"],
+    name = "io_bazel_stardoc",
+    strip_prefix = "stardoc-0.4.0",
+    urls = ["https://github.com/bazelbuild/stardoc/archive/0.4.0.tar.gz"],
 )
-load("@io_bazel_rules_sass//sass:sass.bzl", "sass_repositories")
-sass_repositories()
 
-http_archive(
-    name = "io_bazel_skydoc",
-    strip_prefix = "skydoc-f531844d137c7accc44d841c08a2a2a366688571",
-    urls = ["https://github.com/bazelbuild/skydoc/archive/f531844d137c7accc44d841c08a2a2a366688571.tar.gz"],
-)
-load("@io_bazel_skydoc//skylark:skylark.bzl", "skydoc_repositories")
-skydoc_repositories()
+load("@io_bazel_stardoc//:setup.bzl", "stardoc_repositories")
+stardoc_repositories()
