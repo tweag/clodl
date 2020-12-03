@@ -110,7 +110,8 @@ java_binary(
 
 **Requirements:**
 * The [Bazel][bazel] build tool;
-* the [Nix][nix] package manager.
+* the [Nix][nix] package manager;
+* the `scanelf` tool from the `pax-utils` package.
 
 To build and test:
 
