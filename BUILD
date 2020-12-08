@@ -26,7 +26,6 @@ cc_binary(
     name = "libbootstrap.so",
     deps = ["bootstrap-bz"],
     linkshared = 1,
-    linkstatic = 0,
 )
 
 java_library(
@@ -39,10 +38,10 @@ haskell_toolchain_library(name = "base")
 haskell_binary(
     name = "hello-hs",
     testonly = True,
+    linkstatic = False,
     srcs = ["src/test/haskell/hello/Main.hs"],
     compiler_flags = [
         "-threaded",
-        "-dynamic",
         "-pie",
         "-optl-Wl,--dynamic-list=main-symbol-list.ld",
     ],
@@ -99,7 +98,6 @@ cc_binary(
     srcs = ["src/test/cc/hello/main.c"],
     deps = ["lib-cc"],
     linkshared = 1,
-    linkstatic = 0,
     testonly = True,
 )
 

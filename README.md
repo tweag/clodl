@@ -41,7 +41,6 @@ cc_binary(
   name = "libhello.so",
   srcs = ["main.c"],
   linkshared = 1,
-  linkstatic = 0,
   deps = ...
 )
 
@@ -56,9 +55,9 @@ With Haskell:
 ```
 haskell_binary(
     name = "hello-hs",
+    linkstatic = False,
     srcs = ["src/test/haskell/hello/Main.hs"],
     compiler_flags = [
-        "-dynamic",
         "-pie",
         "-rdynamic", # or "-optl-Wl,--dynamic-list=main-symbol-list.ld"
     ],
