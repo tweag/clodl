@@ -8,6 +8,7 @@ mkShell {
     binutils
     cacert
     git
+    less
     nix
     openjdk11
     python3
