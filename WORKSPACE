@@ -9,20 +9,6 @@ http_archive(
     urls = ["https://github.com/tweag/rules_haskell/archive/6604b8c19701a64986e98d475959ff2a2e8a1379.tar.gz"],
 )
 
-http_archive(
-    name = "org_nixos_patchelf",
-    build_file_content = """
-cc_binary(
-    name = "patchelf",
-    srcs = ["src/patchelf.cc", "src/elf.h"],
-    copts = ["-DPAGESIZE=4096", '-DPACKAGE_STRING=\\\\"patchelf\\\\"'],
-    visibility = [ "//visibility:public" ],
-)
-""",
-    strip_prefix = "patchelf-1fa4d36fead44333528cbee4b5c04c207ce77ca4",
-    urls = ["https://github.com/NixOS/patchelf/archive/1fa4d36fead44333528cbee4b5c04c207ce77ca4.tar.gz"],
-)
-
 load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
 haskell_repositories()
 
