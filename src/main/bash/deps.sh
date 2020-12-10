@@ -106,7 +106,7 @@ traverse_deps() {
     do
         if [ ! ${dont_print["$lib"]+defined} ]
         then
-           echo -en "$lib\t"; realpath ${paths["$lib"]}
+           echo ${paths["$lib"]}
            dont_print["$lib"]=1
            traverse_deps "${paths["$lib"]}"
         fi

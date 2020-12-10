@@ -1,75 +1,42 @@
 """Library and binary closures"""
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAME") 
 
-def _rename_as_solib_impl(ctx):
-    """Renames files as libraries."""
 
-    output_files = []
-    for f in ctx.files.deps:
-        if f.basename.endswith(".so") or f.basename.find(".so.") != -1:
-            symlink = ctx.actions.declare_file(paths.join(ctx.attr.outputdir, f.basename))
-        else:
-            symlink = ctx.actions.declare_file(paths.join(ctx.attr.outputdir, "lib%s.so" % f.basename))
-        output_files.append(symlink)
-        ctx.actions.run_shell(
-            inputs = depset([f]),
-            outputs = [symlink],
-            mnemonic = "Symlink",
-            command = """
-            set -eo pipefail
-            mkdir -p {out_dir}
-            ln -s $(realpath {target}) {link}
-            """.format(
-                target = f.path,
-                link = symlink.path,
-                out_dir = symlink.dirname,
-            ),
-        )
+def _library_closure_impl(ctx):
 
-    return DefaultInfo(files = depset(output_files))
+    cc_toolchain = find_cpp_toolchain(ctx)
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
+        unsupported_features = ctx.disabled_features,
+    )
+    compiler = cc_common.get_tool_for_action(
+        feature_configuration=feature_configuration,
+        action_name=C_COMPILE_ACTION_NAME
+    )
+    compiler_variables = cc_common.create_compile_variables(
+        feature_configuration = feature_configuration,
+        cc_toolchain = cc_toolchain,
+    )
+    #compiler_options = cc_common.get_memory_inefficient_command_line(
+    #    feature_configuration = feature_configuration,
+    #    action_name = C_COMPILE_ACTION_NAME,
+    #    variables = compiler_variables,
+    #)
+    compiler_env = cc_common.get_environment_variables(
+       feature_configuration = feature_configuration,
+       action_name = C_COMPILE_ACTION_NAME,
+       variables = compiler_variables,
+    )
 
-_rename_as_solib = rule(
-    _rename_as_solib_impl,
-    attrs = {
-        "deps": attr.label_list(),
-        "outputdir": attr.string(
-          doc = "Where the outputs are placed.",
-          mandatory = True,
-        ),
-    },
-	doc = """
-Renames files as shared libraries to make them suitable for linking with `cc_binary`.
-
-This is useful for linking executables built with `-pie`.
-
-Example:
-
-  ```bzl
-  _rename_as_solib(
-      name = "some_binary"
-      dep = [":lib"]
-      outputdir = "dir"
-  )
-  ```
-
-  If some_binary has files `a.so` and `b`, the outputs are `dir/a.so`
-  and `dir/b.so`. The outputs need to be placed in a new directory or
-  bazel will complain of conflicts with the rules that initially
-  created the runfiles.
-
-  Note: Runfiles are not propagated.
-
-""",
-)
-
-def _shared_lib_paths_impl(ctx):
-    """Collects the list of shared library paths of an executable or library."""
-    libs_file = ctx.actions.declare_file(ctx.label.name + ".txt")
-    files = depset()
+    output_file = ctx.actions.declare_file(ctx.label.name + ".zip")
+    cc_tools = ctx.attr._cc_toolchain.files
+    files = depset(ctx.files.srcs)
     runfiles = depset()
     for src in ctx.attr.srcs:
-        files = depset(transitive = [src.files, files])
         runfiles = depset(transitive = [src.default_runfiles.files, runfiles])
 
     # find tools
@@ -96,75 +63,112 @@ def _shared_lib_paths_impl(ctx):
 
     args = ctx.actions.args()
     args.add_joined(files, join_with = " ")
-    args.add(libs_file)
+    args.add(output_file)
     ctx.actions.run_shell(
-        outputs = [libs_file],
+        outputs = [output_file],
         inputs = depset([bash, grep, ldd, scanelf], transitive = [runfiles, files]),
-        tools = [ctx.executable._deps_tool],
+        tools = [ctx.executable._deps_tool] + cc_tools.to_list(),
         arguments = [args],
+        env = compiler_env,
         command = """
-        set -eo pipefail
-        tops="$1"
-        libs_file="$2"
 
-        # find the list of libraries with ldd
-        PATH={tools}:$PATH {deps} $tops -- {excludes} > $libs_file
+        set -euo pipefail
+        srclibs="$1"
+        output_file="$2"
+        executable={executable}
+        tmpdir=$(mktemp -d)
+
+        PATH={tools}:$PATH {deps} $srclibs -- {excludes} > libs.txt
+        for lib in $srclibs
+        do
+          echo $lib >> libs.txt
+        done
+        cp $(cat libs.txt) $tmpdir
+
+        # Build the wrapper library that links directly to all dependencies.
+        # Loading the wrapper ensures that the transitive dependencies are found
+        # in the final closure no matter how the runpaths of the direct
+        # dependencies were set.
+        cat libs.txt \
+          | sort | uniq \
+          | sed "s/.*\\/\\(.*\\)/-l:\\1/" \
+          > params
+        echo \
+          -L$tmpdir \
+          -Wl,-S \
+          -Wl,-no-as-needed \
+          -Wl,-z,relro,-z,now \
+          >> params
+        echo '-Wl,-rpath=$ORIGIN' >> params
+        if [ $executable == False ]
+        then
+          echo \
+            -shared \
+            -o $tmpdir/libclodl-top.so \
+            >> params
+        else
+          echo -o $tmpdir/clodl-exe-top >> params
+        fi
+        echo compiler: {compiler}
+        {compiler} @params
+
+        # zip all the libraries
+        zip -X -qjr $output_file $tmpdir
+        rm -rf $tmpdir
+
+        # Check that the excluded libraries have been really excluded.
+
+        # Check first that there are files to exclude.
+        [ '{excludes}' ] || exit 0
+
+        # Produce a file with regexes to exclude libs from the zip.
+        tmpx_file=$(mktemp tmpexcludes_file.XXXXXX)
+        # Note: quotes are important in shell expansion to preserve newlines.
+        echo '{n_excludes}' > $tmpx_file
+
+        # Check that excluded libraries don't appear in the zip file.
+        if unzip -t $@ \
+            | grep -e '^[ ]*testing: ' \
+            | sed "s/^[ ]*testing: \\([^ ]*\\).*/\\1/" \
+            | grep -Ef $tmpx_file
+        then
+            echo "library_closure: lint: Some files were not excluded."
+            exit 1
+        fi
+
+        rm -rf $tmpx_file
         """.format(
-            deps = ctx.executable._deps_tool.path,
+            executable = ctx.attr.executable,
             excludes = excludes,
+            n_excludes = "\n".join(ctx.attr.excludes),
+            deps = ctx.executable._deps_tool.path,
             tools = ldd.dirname,
+            compiler = compiler
         ),
     )
 
-    return DefaultInfo(files = depset([libs_file]))
+    return DefaultInfo(files = depset([output_file]))
 
-_shared_lib_paths = rule(
-    _shared_lib_paths_impl,
+
+library_closure = rule(
+    _library_closure_impl,
     attrs = {
         "srcs": attr.label_list(),
         "excludes": attr.string_list(),
+        "executable": attr.bool(),
         "_deps_tool": attr.label(
             executable = True,
             cfg = "host",
             allow_files = True,
             default = Label("//:deps"),
         ),
+        "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
     },
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
+    fragments = ["cpp"],
     doc = """
-Collects the list of shared library paths of an executable or library.
-
-Produces a txt file containing the paths.
-
-Example:
-
-  ```bzl
-  _shared_lib_paths = (
-      name = "shared-libs"
-      srcs = [":lib", ":exe"]
-  )
-  ```
-
-  The output is shared-libs.txt.
-
-""",
-)
-
-def _mangle_dir(name):
-    """Creates a unique directory name from the repo name and package
-      name of the package being evaluated, and a given name.
-
-    """
-    components = [native.repository_name(), native.package_name(), name]
-    components = [c.replace("@", "") for c in components]
-    components = [c for c in components if c]
-    return "/".join(components).replace("_", "_U").replace("/", "_S")
-
-def library_closure(name, srcs, outzip = "", excludes = [], executable = False, **kwargs):
-    """
-    Produce a closure of the given shared libraries.
-
     Produces a zip file containing a closure of all the shared
-    libraries needed to load the given shared libraries.
+    libraries needed to load the given shared libraries or executables.
 
     Example:
 
@@ -173,188 +177,30 @@ def library_closure(name, srcs, outzip = "", excludes = [], executable = False, 
           name = "closure"
           srcs = [":lib1", ":lib2"]
           excludes = ["libexclude_this\.so", "libthis_too\.so"]
-          outzip = "file.zip"
           ...
       )
       ```
 
-      The zip file `<generated_dir>/file.zip` is created, with all the
+      The zip file `closure.zip` is created, with all the
       shared libraries required by `:lib1` and `:lib2` except those in
-      excludes. `<generated_dir>` is a name which depends on `name`.
+      excludes.
 
     Args:
       name: A unique name for this rule.
 
       srcs: Libraries whose dependencies need to be included.
 
-      outzip: The name of the zip file to produce. If omitted, the
-              file is named as the rule with a `.zip` file extension.
-              If present, the file is created inside a directory with
-              a name generated from the rule name.
-
       excludes: Patterns matching the names of libraries that should
                 be excluded from the closure. Extended regular
                 expresions as provided by grep can be used here.
 
       executable: Includes a wrapper in the zip file capable of executing the
-                  closure (`<name>_wrapper`). If executable is False, the wrapper
-                  is just a shared library `lib<name>_wrapper.so` that depends on
+                  closure (`clodl-exe-top`). If executable is False, the wrapper
+                  is just a shared library `libclodl-top.so` that depends on
                   all the other libraries in the closure.
 
     """
-    libs_file = "%s-libs" % name
-    srclibs = "%s-as-libs" % name
-    param_file = "%s-params.ld" % name
-    dirs_file = "%s-search_dirs.ld" % name
-    if executable:
-        wrapper_lib = "%s_wrapper" % name
-    else:
-        wrapper_lib = "lib%s_wrapper.so" % name
-    solibdir = _mangle_dir(name + "_solib")
-    solibdir_renamed = solibdir + "_renamed"
-    if outzip == "":
-        outputdir = "."
-        outzip = "%s.zip" % name
-    else:
-        outputdir = _mangle_dir(name)
-        outzip = paths.join(outputdir, outzip)
-
-    # Rename the inputs to solibs as expected by cc_binary.
-    _rename_as_solib(
-        name = srclibs,
-        deps = srcs,
-        outputdir = solibdir_renamed,
-        **kwargs
-    )
-
-    # Get the paths of srcs dependencies.
-    # It would be simpler if we could give the shared libraries
-    # as outputs. Unfortunately, that information is currently
-    # discovered when running the actions and isn't available when
-    # wiring them.
-    _shared_lib_paths(
-        name = libs_file,
-        srcs = srcs,
-        excludes = excludes,
-        **kwargs
-    )
-
-    # Produce the arguments for linking the wrapper library
-    #
-    # cc_binary links any libraries passed to it in srcs. But
-    # we need these extra arguments to link all of the dependencies
-    # that may reside outside the sandbox.
-    #
-    # We produce two files:
-    # * params_file contains the dependencies names, and
-    # * dirs_file contains the paths in which to look for dependencies.
-    #
-    # The linker fails with an obscure error if the contents of both files
-    # are put into one.
-    native.genrule(
-        name = "%s_params_file" % name,
-        srcs = [libs_file],
-        cmd = """
-        libs_file=$(SRCS)
-        param_file=$(location %s)
-        dirs_file=$(location %s)
-        cat $$libs_file \
-          | cut -f 2 \
-          | sed "s/\\(.*\\)\\/.*/SEARCH_DIR(\\1)/" \
-          | sort | uniq \
-          > $$dirs_file
-        echo "INPUT(" > $$param_file
-        cat $$libs_file \
-          | cut -f 2 \
-          | sed "s/.*\\/\\(.*\\)/\\1/" \
-          | sort | uniq \
-          >> $$param_file
-        echo ")" >> $$param_file
-        """ % (param_file, dirs_file),
-        outs = [param_file, dirs_file],
-        **kwargs
-    )
-
-    # Build the wrapper library that links directly to all dependencies.
-    # Loading the wrapper ensures that the transitive dependencies are found
-    # in the final closure no matter how the runpaths of the direct
-    # dependencies were set.
-    native.cc_binary(
-        name = wrapper_lib,
-        linkshared = not executable,
-        linkopts = [
-            "-Wl,-rpath=$$ORIGIN",
-            "$(location %s)" % param_file,
-            "-T$(location %s)" % dirs_file,
-        ],
-        srcs = [srclibs],
-        deps = [param_file, dirs_file],
-        **kwargs
-    )
-
-    # Copy the libraries to a folder and zip them
-    native.genrule(
-        name = name,
-        srcs = [libs_file, wrapper_lib, srclibs],
-        cmd = """
-        set -euo pipefail
-        libs_file="$(location %s)"
-        outputdir="%s"
-        excludes="%s"
-        srclibs="$(locations %s)"
-        wrapper_lib="$(location %s)"
-        tmpdir=$$(mktemp -d)
-
-        # Put srclibs and the wrapper_lib names in an associative array
-        declare -A srcnames
-        for i in $${wrapper_lib} $${srclibs}
-        do
-            srcnames["$${i##*/}"]=1
-        done
-        # Keep the libraries which are not in SRCS
-        declare -a libs=()
-        while read i
-        do
-            if [ ! $${srcnames["$${i##*/}"]+defined} ]
-            then
-                echo "$$i" | {
-                    read -r -d $$'\t' name
-                    read -r path
-                    cp "$$path" "$$tmpdir/$$name"
-                }
-            fi
-        done < <(cat $$libs_file)
-        cp "$${wrapper_lib}" $${srclibs} $$tmpdir
-
-        mkdir -p "$$outputdir"
-        zip -X -qjr $@ $$tmpdir
-        rm -rf $$tmpdir
-
-        # Check that the excluded libraries have been really excluded.
-
-        # Check first that there are files to exclude.
-        [ "$$excludes" ] || exit 0
-
-        # Produce a file with regexes to exclude libs from the zip.
-        tmpx_file=$$(mktemp tmpexcludes_file.XXXXXX)
-        # Note: quotes are important in shell expansion to preserve newlines.
-        echo "$$excludes" > $$tmpx_file
-
-        # Check that excluded libraries don't appear in the zip file.
-        if unzip -t $@ \
-            | grep -e '^[ ]*testing: ' \
-            | sed "s/^[ ]*testing: \\([^ ]*\\).*/\\1/" \
-            | grep -Ef $$tmpx_file
-        then
-            echo "library_closure: lint: Some files were not excluded."
-            exit 1
-        fi
-
-        rm -rf $$tmpx_file
-        """ % (libs_file, outputdir, "\n".join(excludes), srclibs, wrapper_lib),
-        outs = [outzip],
-        **kwargs
-    )
+)
 
 def binary_closure(name, src, excludes = [], **kwargs):
     """
@@ -405,7 +251,6 @@ def binary_closure(name, src, excludes = [], **kwargs):
         srcs = [zip_name],
         cmd = """
     set -eu
-    zip_name="{zip_name}"
     zip_file_path="$(SRCS)"
 
     cat - "$$zip_file_path" > $@ <<END
@@ -414,12 +259,12 @@ def binary_closure(name, src, excludes = [], **kwargs):
     tmpdir=\$$(mktemp -d)
     trap "rm -rf '\$$tmpdir'" EXIT
     unzip -q "\$$0" -d "\$$tmpdir" 2> /dev/null || true
-    "\$$tmpdir/{zip_name}_wrapper"
+    "\$$tmpdir/clodl-exe-top"
     exit 0
 END
     chmod +x $@
 
-    """.format(zip_name = zip_name),
+    """,
         executable = True,
         outs = [name + ".sh"],
         **kwargs

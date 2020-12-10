@@ -62,7 +62,6 @@ library_closure(
         "libm\.so.*",
         "libpthread\.so.*",
     ],
-    outzip = "closure.zip",
 )
 
 binary_closure(
