@@ -1,31 +1,33 @@
-package(default_visibility = ["//visibility:public"])
-
+load("@rules_java//java:defs.bzl", "java_binary", "java_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load(
     "@rules_haskell//haskell:defs.bzl",
     "haskell_binary",
-    "haskell_test",
     "haskell_toolchain_library",
 )
 load(
     "@io_tweag_clodl//clodl:clodl.bzl",
-    "library_closure",
     "binary_closure",
+    "library_closure",
 )
+load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
+
+package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "bootstrap-bz",
     srcs = ["src/main/cc/bootstrap.c"],
     copts = ["-std=c99"],
     deps = [
-        "@rules_haskell_ghc_nixpkgs//:include",
         "@openjdk//:include",
+        "@rules_haskell_ghc_nixpkgs//:include",
     ],
 )
 
 cc_binary(
     name = "libbootstrap.so",
-    deps = ["bootstrap-bz"],
     linkshared = 1,
+    deps = ["bootstrap-bz"],
 )
 
 java_library(
@@ -33,12 +35,11 @@ java_library(
     srcs = glob(["src/main/java/**/*.java"]),
 )
 
-
 haskell_toolchain_library(name = "base")
+
 haskell_binary(
     name = "hello-hs",
     testonly = True,
-    linkstatic = False,
     srcs = ["src/test/haskell/hello/Main.hs"],
     compiler_flags = [
         "-threaded",
@@ -46,21 +47,25 @@ haskell_binary(
         "-optl-Wl,--dynamic-list=main-symbol-list.ld",
     ],
     extra_srcs = ["main-symbol-list.ld"],
-    deps = [":base"],
+    linkstatic = False,
     src_strip_prefix = "src/test/haskell/hello",
+    deps = [":base"],
 )
 
 library_closure(
     name = "clotest",
     testonly = True,
-    srcs = ["hello-hs", "libbootstrap.so"],
+    srcs = [
+        "hello-hs",
+        "libbootstrap.so",
+    ],
     excludes = [
-        "ld-linux-x86-64\.so.*",
-        "libgcc_s\.so.*",
-        "libc\.so.*",
-        "libdl\.so.*",
-        "libm\.so.*",
-        "libpthread\.so.*",
+        "ld-linux-x86-64\\.so.*",
+        "libgcc_s\\.so.*",
+        "libc\\.so.*",
+        "libdl\\.so.*",
+        "libm\\.so.*",
+        "libpthread\\.so.*",
     ],
 )
 
@@ -69,12 +74,12 @@ binary_closure(
     testonly = True,
     src = "hello-hs",
     excludes = [
-        "ld-linux-x86-64\.so.*",
-        "libgcc_s\.so.*",
-        "libc\.so.*",
-        "libdl\.so.*",
-        "libm\.so.*",
-        "libpthread\.so.*",
+        "ld-linux-x86-64\\.so.*",
+        "libgcc_s\\.so.*",
+        "libc\\.so.*",
+        "libdl\\.so.*",
+        "libm\\.so.*",
+        "libpthread\\.so.*",
     ],
 )
 
@@ -88,16 +93,16 @@ java_binary(
 
 cc_library(
     name = "lib-cc",
-    srcs = ["src/test/cc/hello/lib.c"],
     testonly = True,
+    srcs = ["src/test/cc/hello/lib.c"],
 )
 
 cc_binary(
     name = "libhello-cc.so",
-    srcs = ["src/test/cc/hello/main.c"],
-    deps = ["lib-cc"],
-    linkshared = 1,
     testonly = True,
+    srcs = ["src/test/cc/hello/main.c"],
+    linkshared = 1,
+    deps = ["lib-cc"],
 )
 
 binary_closure(
@@ -108,9 +113,9 @@ binary_closure(
 
 cc_binary(
     name = "libhello-cc-norunfiles.so",
+    testonly = True,
     srcs = ["src/test/cc/hello/main.c"],
     linkshared = 1,
-    testonly = True,
 )
 
 binary_closure(
@@ -121,10 +126,13 @@ binary_closure(
 
 cc_binary(
     name = "hello-cc-pie",
-    srcs = ["src/test/cc/hello/main.c"],
-    linkopts = ["-pie", "-Wl,--dynamic-list=main-symbol-list.ld"],
-	deps = ["main-symbol-list.ld"],
     testonly = True,
+    srcs = ["src/test/cc/hello/main.c"],
+    linkopts = [
+        "-pie",
+        "-Wl,--dynamic-list=main-symbol-list.ld",
+    ],
+    deps = ["main-symbol-list.ld"],
 )
 
 binary_closure(

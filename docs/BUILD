@@ -3,11 +3,11 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 stardoc(
     name = "docs",
-    input = "//clodl:clodl.bzl",
     out = "doc.md",
+    input = "//clodl:clodl.bzl",
     deps = [
-        "@bazel_skylib//lib:paths",
         ":refs",
+        "@bazel_skylib//lib:paths",
     ],
 )
 

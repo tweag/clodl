@@ -10,6 +10,7 @@ http_archive(
 )
 
 load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
+
 haskell_repositories()
 
 load(
@@ -41,16 +42,6 @@ filegroup(
 
 haskell_register_ghc_nixpkgs(
     attribute_path = "haskell.compiler.ghc8102",
-    locale_archive = "@glibc_locales//:locale-archive",
-    repositories = {"nixpkgs": "@nixpkgs"},
-    version = "8.10.2",
-    compiler_flags = [
-        "-Werror",
-        "-Wall",
-        "-Wcompat",
-        "-Wincomplete-record-updates",
-        "-Wredundant-constraints",
-    ],
     build_file_content = """
 package(default_visibility = [ "//visibility:public" ])
 
@@ -65,6 +56,16 @@ cc_library(
     strip_include_prefix = glob(["lib/ghc-*/include"], exclude_directories=0)[0],
 )
 """,
+    compiler_flags = [
+        "-Werror",
+        "-Wall",
+        "-Wcompat",
+        "-Wincomplete-record-updates",
+        "-Wredundant-constraints",
+    ],
+    locale_archive = "@glibc_locales//:locale-archive",
+    repositories = {"nixpkgs": "@nixpkgs"},
+    version = "8.10.2",
 )
 
 nixpkgs_package(
@@ -81,7 +82,6 @@ cc_library(
     repository = "@nixpkgs",
 )
 
-
 http_archive(
     name = "io_bazel_stardoc",
     strip_prefix = "stardoc-0.4.0",
@@ -89,6 +89,7 @@ http_archive(
 )
 
 load("@io_bazel_stardoc//:setup.bzl", "stardoc_repositories")
+
 stardoc_repositories()
 
 ##################################################################
