@@ -2,11 +2,23 @@
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
-load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAME") 
+load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 
+def remove_library_flags(flags):
+  return [f for f in flags if not f.startswith("-l")]
+
+def quote_list(xs):
+    if [] == xs:
+        return ""
+    else:
+        return "'" + "' '".join(xs) + "'"
 
 def _library_closure_impl(ctx):
 
+    if ctx.attr.executable:
+        action_name = ACTION_NAMES.cpp_link_executable
+    else:
+        action_name = ACTION_NAMES.cpp_link_nodeps_dynamic_library
     cc_toolchain = find_cpp_toolchain(ctx)
     feature_configuration = cc_common.configure_features(
         ctx = ctx,
@@ -15,20 +27,20 @@ def _library_closure_impl(ctx):
     )
     compiler = cc_common.get_tool_for_action(
         feature_configuration=feature_configuration,
-        action_name=C_COMPILE_ACTION_NAME
+        action_name=action_name
     )
     compiler_variables = cc_common.create_compile_variables(
         feature_configuration = feature_configuration,
         cc_toolchain = cc_toolchain,
     )
-    #compiler_options = cc_common.get_memory_inefficient_command_line(
-    #    feature_configuration = feature_configuration,
-    #    action_name = C_COMPILE_ACTION_NAME,
-    #    variables = compiler_variables,
-    #)
+    compiler_options = remove_library_flags(cc_common.get_memory_inefficient_command_line(
+        feature_configuration = feature_configuration,
+        action_name = action_name,
+        variables = compiler_variables,
+    ))
     compiler_env = cc_common.get_environment_variables(
        feature_configuration = feature_configuration,
-       action_name = C_COMPILE_ACTION_NAME,
+       action_name = action_name,
        variables = compiler_variables,
     )
 
@@ -56,10 +68,7 @@ def _library_closure_impl(ctx):
         """.format(ldd = ldd.path, bash=bash.path, grep = grep.path, scanelf = scanelf.path),
     )
 
-    if [] == ctx.attr.excludes:
-        excludes = ""
-    else:
-        excludes = "'" + "' '".join(ctx.attr.excludes) + "'"
+    excludes = quote_list(ctx.attr.excludes)
 
     args = ctx.actions.args()
     args.add_joined(files, join_with = " ")
@@ -95,17 +104,12 @@ def _library_closure_impl(ctx):
           > params
         echo \
           -L$tmpdir \
-          -Wl,-S \
-          -Wl,-no-as-needed \
-          -Wl,-z,relro,-z,now \
+          "{compiler_options}" \
           >> params
         echo '-Wl,-rpath=$ORIGIN' >> params
         if [ $executable == False ]
         then
-          echo \
-            -shared \
-            -o $tmpdir/libclodl-top.so \
-            >> params
+          echo -o $tmpdir/libclodl-top.so >> params
         else
           echo -o $tmpdir/clodl-exe-top >> params
         fi
@@ -142,7 +146,8 @@ def _library_closure_impl(ctx):
             n_excludes = "\n".join(ctx.attr.excludes),
             deps = ctx.executable._deps_tool.path,
             tools = ldd.dirname,
-            compiler = compiler
+            compiler = compiler,
+            compiler_options = quote_list(compiler_options),
         ),
     )
 
