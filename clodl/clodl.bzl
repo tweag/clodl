@@ -109,7 +109,6 @@ def _library_closure_impl(ctx):
         else
           echo -o $tmpdir/clodl-exe-top >> params
         fi
-        echo compiler: {compiler}
         {compiler} @params
 
         # zip all the libraries
