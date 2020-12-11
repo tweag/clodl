@@ -76,7 +76,7 @@ def _library_closure_impl(ctx):
         srclibs="$1"
         output_file="$2"
         executable={executable}
-        tmpdir=$(mktemp -d)
+        tmpdir=$(mktemp -d -p $PWD)
 
         PATH={tools}:$PATH {deps} $srclibs -- {excludes} > libs.txt
         for lib in $srclibs
@@ -121,7 +121,7 @@ def _library_closure_impl(ctx):
         [ '{excludes}' ] || exit 0
 
         # Produce a file with regexes to exclude libs from the zip.
-        tmpx_file=$(mktemp tmpexcludes_file.XXXXXX)
+        tmpx_file=$(mktemp tmpexcludes_file.XXXXXX -p $PWD)
         # Note: quotes are important in shell expansion to preserve newlines.
         echo '{n_excludes}' > $tmpx_file
 
