@@ -137,3 +137,8 @@ sh_binary(
     name = "deps",
     srcs = ["src/main/bash/deps.sh"],
 )
+
+buildifier(
+    name = "buildifier",
+    lint_mode = "warn",
+)
