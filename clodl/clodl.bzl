@@ -1,6 +1,5 @@
 """Library and binary closures"""
 
-load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 
@@ -46,9 +45,7 @@ def _library_closure_impl(ctx):
     output_file = ctx.actions.declare_file(ctx.label.name + ".zip")
     cc_tools = ctx.attr._cc_toolchain.files
     files = depset(ctx.files.srcs)
-    runfiles = depset()
-    for src in ctx.attr.srcs:
-        runfiles = depset(transitive = [src.default_runfiles.files, runfiles])
+    runfiles = depset(transitive = [src.default_runfiles.files for src in ctx.attr.srcs])
 
     # find tools
     bash = ctx.actions.declare_file("bash")
