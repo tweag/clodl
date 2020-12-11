@@ -5,7 +5,7 @@ load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 
 def remove_library_flags(flags):
-  return [f for f in flags if not f.startswith("-l")]
+    return [f for f in flags if not f.startswith("-l")]
 
 def quote_list(xs):
     if [] == xs:
@@ -14,7 +14,6 @@ def quote_list(xs):
         return "'" + "' '".join(xs) + "'"
 
 def _library_closure_impl(ctx):
-
     if ctx.attr.executable:
         action_name = ACTION_NAMES.cpp_link_executable
     else:
@@ -26,8 +25,8 @@ def _library_closure_impl(ctx):
         unsupported_features = ctx.disabled_features,
     )
     compiler = cc_common.get_tool_for_action(
-        feature_configuration=feature_configuration,
-        action_name=action_name
+        feature_configuration = feature_configuration,
+        action_name = action_name,
     )
     compiler_variables = cc_common.create_compile_variables(
         feature_configuration = feature_configuration,
@@ -39,9 +38,9 @@ def _library_closure_impl(ctx):
         variables = compiler_variables,
     ))
     compiler_env = cc_common.get_environment_variables(
-       feature_configuration = feature_configuration,
-       action_name = action_name,
-       variables = compiler_variables,
+        feature_configuration = feature_configuration,
+        action_name = action_name,
+        variables = compiler_variables,
     )
 
     output_file = ctx.actions.declare_file(ctx.label.name + ".zip")
@@ -65,7 +64,7 @@ def _library_closure_impl(ctx):
         ln -s $(command -v ldd) {ldd}
         ln -s $(command -v grep) {grep}
         ln -s $(command -v scanelf) {scanelf}
-        """.format(ldd = ldd.path, bash=bash.path, grep = grep.path, scanelf = scanelf.path),
+        """.format(ldd = ldd.path, bash = bash.path, grep = grep.path, scanelf = scanelf.path),
     )
 
     excludes = quote_list(ctx.attr.excludes)
@@ -153,7 +152,6 @@ def _library_closure_impl(ctx):
 
     return DefaultInfo(files = depset([output_file]))
 
-
 library_closure = rule(
     _library_closure_impl,
     attrs = {
@@ -180,7 +178,7 @@ library_closure = rule(
       library_closure(
           name = "closure"
           srcs = [":lib1", ":lib2"]
-          excludes = ["libexclude_this\.so", "libthis_too\.so"]
+          excludes = ["libexclude_this\\.so", "libthis_too\\.so"]
           ...
       )
       ```
@@ -203,7 +201,7 @@ library_closure = rule(
                   is just a shared library `libclodl-top.so` that depends on
                   all the other libraries in the closure.
 
-    """
+    """,
 )
 
 def binary_closure(name, src, excludes = [], **kwargs):
@@ -227,7 +225,7 @@ def binary_closure(name, src, excludes = [], **kwargs):
       binary_closure(
           name = "closure"
           src = "hello-cc"
-          excludes = ["libexclude_this\.so", "libthis_too\.so"]
+          excludes = ["libexclude_this\\.so", "libthis_too\\.so"]
           ...
       )
       ```
@@ -260,10 +258,10 @@ def binary_closure(name, src, excludes = [], **kwargs):
     cat - "$$zip_file_path" > $@ <<END
     #!/usr/bin/env bash
     set -eu
-    tmpdir=\$$(mktemp -d)
-    trap "rm -rf '\$$tmpdir'" EXIT
-    unzip -q "\$$0" -d "\$$tmpdir" 2> /dev/null || true
-    "\$$tmpdir/clodl-exe-top"
+    tmpdir=\\$$(mktemp -d)
+    trap "rm -rf '\\$$tmpdir'" EXIT
+    unzip -q "\\$$0" -d "\\$$tmpdir" 2> /dev/null || true
+    "\\$$tmpdir/clodl-exe-top"
     exit 0
 END
     chmod +x $@
