@@ -8,5 +8,5 @@ steps:
       nix-shell --pure --run 'bazel run clotestbin-cc-norunfiles'
       nix-shell --pure --run 'bazel run clotestbin-cc-pie'
       nix-shell --pure --run 'bazel run hello-java'
-      nix-shell --pure --run 'bazel run //:buildifier'
+      nix-shell --pure --run 'bazel run //:buildifier-diff'
     timeout: 30

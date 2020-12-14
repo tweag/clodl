@@ -142,6 +142,11 @@ sh_binary(
 )
 
 buildifier(
+    name = "buildifier-diff",
+    mode = "diff",
+)
+
+buildifier(
     name = "buildifier",
     lint_mode = "warn",
 )
