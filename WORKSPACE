@@ -17,12 +17,15 @@ load(
     "@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
     "nixpkgs_git_repository",
     "nixpkgs_package",
+    "nixpkgs_python_configure",
 )
 
 nixpkgs_git_repository(
     name = "nixpkgs",
     revision = "e7ebd6be80d80000ea9efb62c589a827ba4c22dc",
 )
+
+nixpkgs_python_configure(repository = "@nixpkgs")
 
 load("@rules_haskell//haskell:nixpkgs.bzl", "haskell_register_ghc_nixpkgs")
 
