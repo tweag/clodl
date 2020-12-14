@@ -15,5 +15,7 @@ mkShell {
     unzip
     which
     zip
+    # convenience dependencies
+    less
   ];
 }

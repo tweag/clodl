@@ -9,21 +9,8 @@ http_archive(
     urls = ["https://github.com/tweag/rules_haskell/archive/6604b8c19701a64986e98d475959ff2a2e8a1379.tar.gz"],
 )
 
-http_archive(
-    name = "org_nixos_patchelf",
-    build_file_content = """
-cc_binary(
-    name = "patchelf",
-    srcs = ["src/patchelf.cc", "src/elf.h"],
-    copts = ["-DPAGESIZE=4096", '-DPACKAGE_STRING=\\\\"patchelf\\\\"'],
-    visibility = [ "//visibility:public" ],
-)
-""",
-    strip_prefix = "patchelf-1fa4d36fead44333528cbee4b5c04c207ce77ca4",
-    urls = ["https://github.com/NixOS/patchelf/archive/1fa4d36fead44333528cbee4b5c04c207ce77ca4.tar.gz"],
-)
-
 load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
+
 haskell_repositories()
 
 load(
@@ -55,16 +42,6 @@ filegroup(
 
 haskell_register_ghc_nixpkgs(
     attribute_path = "haskell.compiler.ghc8102",
-    locale_archive = "@glibc_locales//:locale-archive",
-    repositories = {"nixpkgs": "@nixpkgs"},
-    version = "8.10.2",
-    compiler_flags = [
-        "-Werror",
-        "-Wall",
-        "-Wcompat",
-        "-Wincomplete-record-updates",
-        "-Wredundant-constraints",
-    ],
     build_file_content = """
 package(default_visibility = [ "//visibility:public" ])
 
@@ -79,6 +56,16 @@ cc_library(
     strip_include_prefix = glob(["lib/ghc-*/include"], exclude_directories=0)[0],
 )
 """,
+    compiler_flags = [
+        "-Werror",
+        "-Wall",
+        "-Wcompat",
+        "-Wincomplete-record-updates",
+        "-Wredundant-constraints",
+    ],
+    locale_archive = "@glibc_locales//:locale-archive",
+    repositories = {"nixpkgs": "@nixpkgs"},
+    version = "8.10.2",
 )
 
 nixpkgs_package(
@@ -95,7 +82,6 @@ cc_library(
     repository = "@nixpkgs",
 )
 
-
 http_archive(
     name = "io_bazel_stardoc",
     strip_prefix = "stardoc-0.4.0",
@@ -103,4 +89,55 @@ http_archive(
 )
 
 load("@io_bazel_stardoc//:setup.bzl", "stardoc_repositories")
+
 stardoc_repositories()
+
+##################################################################
+#  buildifier setup
+##################################################################
+
+# buildifier is written in Go and hence needs rules_go to be built.
+# See https://github.com/bazelbuild/rules_go for the up to date setup instructions.
+http_archive(
+    name = "io_bazel_rules_go",
+    sha256 = "d1ffd055969c8f8d431e2d439813e42326961d0942bdf734d2c95dc30c369566",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.24.5/rules_go-v0.24.5.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.24.5/rules_go-v0.24.5.tar.gz",
+    ],
+)
+
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+
+go_rules_dependencies()
+
+go_register_toolchains()
+
+http_archive(
+    name = "bazel_gazelle",
+    sha256 = "b85f48fa105c4403326e9525ad2b2cc437babaa6e15a3fc0b1dbab0ab064bc7c",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.2/bazel-gazelle-v0.22.2.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.2/bazel-gazelle-v0.22.2.tar.gz",
+    ],
+)
+
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
+
+gazelle_dependencies()
+
+http_archive(
+    name = "com_google_protobuf",
+    strip_prefix = "protobuf-master",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/master.zip"],
+)
+
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+
+protobuf_deps()
+
+http_archive(
+    name = "com_github_bazelbuild_buildtools",
+    strip_prefix = "buildtools-master",
+    url = "https://github.com/bazelbuild/buildtools/archive/master.zip",
+)
