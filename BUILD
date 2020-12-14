@@ -17,8 +17,8 @@ package(default_visibility = ["//visibility:public"])
 cc_binary(
     name = "libbootstrap.so",
     srcs = ["src/main/cc/bootstrap.c"],
-    linkshared = 1,
     copts = ["-std=c99"],
+    linkshared = 1,
     deps = [
         "@openjdk//:include",
         "@rules_haskell_ghc_nixpkgs//:include",
