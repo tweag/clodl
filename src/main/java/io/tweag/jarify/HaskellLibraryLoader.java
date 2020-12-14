@@ -19,14 +19,14 @@ public class HaskellLibraryLoader {
     public static void loadLibraries() {
 	try {
 	    InputStream in =
-		HaskellLibraryLoader.class.getResourceAsStream("/closure.zip");
+		HaskellLibraryLoader.class.getResourceAsStream("/clotest.zip");
 	    File jarifyAppZipFile = File.createTempFile("jarify-app-", ".zip");
 	    Files.copy(in,
 		       jarifyAppZipFile.toPath(),
 		       StandardCopyOption.REPLACE_EXISTING);
 	    in.close();
 	    try {
-            loadApplication(jarifyAppZipFile, "libclotest_wrapper.so");
+            loadApplication(jarifyAppZipFile, "libclodl-top.so");
 	    } finally {
 		jarifyAppZipFile.delete();
 	    }

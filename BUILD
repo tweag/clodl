@@ -14,20 +14,15 @@ load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 
 package(default_visibility = ["//visibility:public"])
 
-cc_library(
-    name = "bootstrap-bz",
+cc_binary(
+    name = "libbootstrap.so",
     srcs = ["src/main/cc/bootstrap.c"],
+    linkshared = 1,
     copts = ["-std=c99"],
     deps = [
         "@openjdk//:include",
         "@rules_haskell_ghc_nixpkgs//:include",
     ],
-)
-
-cc_binary(
-    name = "libbootstrap.so",
-    linkshared = 1,
-    deps = ["bootstrap-bz"],
 )
 
 java_library(
