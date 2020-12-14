@@ -1,6 +1,6 @@
 # clodl: self-contained dynamic libraries
 
-[![CircleCI](https://circleci.com/gh/tweag/clodl.svg?style=svg)](https://circleci.com/gh/tweag/clodl)
+[![Build status](https://badge.buildkite.com/2d086847c269703f6ce1f0dd97b64ea00196e2b8e8bb68d2fb.svg?branch=master)](https://buildkite.com/tweag-1/clodl)
 
 `clodl` computes the *closure* of a shared object. That is, given
 a shared library or a position independent executable (PIE), it
