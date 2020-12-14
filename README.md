@@ -149,8 +149,6 @@ specified in the [LICENSE](LICENSE) file.
 
 ## About
 
-[<img src="https://www.tweag.io/img/tweag-med.png" height="65">](http://tweag.io)
-
 clodl is maintained by [Tweag I/O](http://tweag.io/).
 
 Have questions? Need help? Tweet at
