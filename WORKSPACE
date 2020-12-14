@@ -108,11 +108,16 @@ http_archive(
     ],
 )
 
+load(
+    "@io_tweag_rules_nixpkgs//nixpkgs:toolchains/go.bzl",
+    "nixpkgs_go_configure",
+)
+
+nixpkgs_go_configure(repository = "@nixpkgs")
+
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
 go_rules_dependencies()
-
-go_register_toolchains()
 
 http_archive(
     name = "bazel_gazelle",
