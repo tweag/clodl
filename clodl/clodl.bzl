@@ -233,6 +233,7 @@ def binary_closure(name, src, excludes = [], **kwargs):
       name: A unique name for this rule
       src: The position independent executable or a shared library.
       excludes: Same purpose as in library_closure
+      **kwargs: Extra arguments
 
     """
     zip_name = "%s-closure" % name
