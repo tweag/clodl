@@ -52,16 +52,38 @@ def _library_closure_impl(ctx):
     grep = ctx.actions.declare_file("grep")
     ldd = ctx.actions.declare_file("ldd")
     scanelf = ctx.actions.declare_file("scanelf")
+    otool = ctx.actions.declare_file("otool")
+    install_name_tool = ctx.actions.declare_file("install_name_tool")
     ctx.actions.run_shell(
-        outputs = [bash, grep, ldd, scanelf],
+        outputs = [bash, grep, ldd, scanelf, otool, install_name_tool],
         use_default_shell_env = True,
         command = """
         set -eo pipefail
         ln -s $(command -v bash) {bash}
-        ln -s $(command -v ldd) {ldd}
+        if [[ $(uname -s) == "Darwin" ]]
+        then
+            touch {ldd}; chmod +x {ldd}
+        else
+            ln -s $(command -v ldd) {ldd}
+        fi
         ln -s $(command -v grep) {grep}
         ln -s $(command -v scanelf) {scanelf}
-        """.format(ldd = ldd.path, bash = bash.path, grep = grep.path, scanelf = scanelf.path),
+        if [[ $(uname -s) == "Darwin" ]]
+        then
+            ln -s $(command -v otool) {otool}
+            ln -s $(command -v install_name_tool) {install_name_tool}
+        else
+            touch {otool}; chmod +x {otool}
+            touch {install_name_tool}; chmod +x {install_name_tool}
+        fi
+        """.format(
+            ldd = ldd.path,
+            bash = bash.path,
+            grep = grep.path,
+            scanelf = scanelf.path,
+            otool = otool.path,
+            install_name_tool = install_name_tool.path,
+        ),
     )
 
     excludes = quote_list(ctx.attr.excludes)
@@ -71,7 +93,7 @@ def _library_closure_impl(ctx):
     args.add(output_file)
     ctx.actions.run_shell(
         outputs = [output_file],
-        inputs = depset([bash, grep, ldd, scanelf], transitive = [runfiles, files]),
+        inputs = depset([bash, grep, ldd, scanelf, otool, install_name_tool], transitive = [runfiles, files]),
         tools = [ctx.executable._copy_closure_tool] + cc_tools.to_list(),
         arguments = [args],
         env = compiler_env,
@@ -85,21 +107,31 @@ def _library_closure_impl(ctx):
 
         PATH={tools}:$PATH {copy_closure} "$tmpdir" $srclibs -- {excludes}
 
-        # Build the wrapper library that links directly to all dependencies.
-        # Loading the wrapper ensures that the transitive dependencies are found
-        # in the final closure no matter how the runpaths of the direct
-        # dependencies were set.
-        find $tmpdir/* \
-          | sort | uniq \
-          | sed "s/.*\\/\\(.*\\)/-l:\\1/" \
-          > params
-        echo \
-          -L$tmpdir \
-          "{compiler_options}" \
-          >> params
-        echo '-Wl,-rpath=$ORIGIN' >> params
-        echo -o $tmpdir/clodl-top0 >> params
-        {compiler} @params
+        if [[ $(uname -s) == "Darwin" ]]
+        then
+            i=0
+            for src in $srclibs
+            do
+                mv $tmpdir/${{src##*/}} $tmpdir/clodl-top$i
+                i=$((i+1))
+            done
+        else
+            # Build the wrapper library that links directly to all dependencies.
+            # Loading the wrapper ensures that the transitive dependencies are found
+            # in the final closure no matter how the runpaths of the direct
+            # dependencies were set.
+            find $tmpdir/* \
+              | sort | uniq \
+              | sed "s/.*\\/\\(.*\\)/-l:\\1/" \
+              > params
+            echo \
+              -L$tmpdir \
+              "{compiler_options}" \
+              >> params
+            echo '-Wl,-rpath=$ORIGIN' >> params
+            echo -o $tmpdir/clodl-top0 >> params
+            {compiler} @params
+        fi
 
         # zip all the libraries
         zip -X -qjr $output_file $tmpdir
@@ -160,7 +192,9 @@ library_closure = rule(
     libraries needed to load the given shared libraries or executables.
 
     The zip file contains a clodl-top0 wrapper library or executable,
-    linking to all of the other libraries.
+    linking to all of the other libraries. In OSX no wrapper is produced
+    but the given binaries in srcs are renamed to clodl-top0, clodl-top1,
+    etc, in the order they were given to library_closure.
 
     Example:
 

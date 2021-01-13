@@ -56,8 +56,14 @@ public class HaskellLibraryLoader {
 	    }
 	    zip.close();
 
-	    // Dynamically load the app.
-	    System.load(jarifyAppTmpDir.resolve("clodl-top0").toString());
+		// Dynamically load the app.
+		String appName = "clodl-top0";
+		int i = 0;
+		do {
+			System.load(jarifyAppTmpDir.resolve(appName).toString());
+			i = i + 1;
+			appName = "clodl-top" + i;
+		} while (Files.exists(jarifyAppTmpDir.resolve(appName)));
 
 	    // Ensure libHSjarify is loaded, since the app may or may
 	    // not depend on it, then call its init function.
