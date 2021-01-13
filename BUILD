@@ -136,9 +136,22 @@ binary_closure(
     src = "hello-cc-pie",
 )
 
+sh_library(
+    name = "copy-closure-lib",
+    srcs = [
+        "src/main/bash/common/routines.sh",
+        "src/main/bash/routines.sh",
+    ],
+)
+
 sh_binary(
-    name = "deps",
-    srcs = ["src/main/bash/deps.sh"],
+    name = "copy-closure",
+    srcs = ["src/main/bash/copy-closure.sh"],
+    data = [
+        "src/main/bash/common/routines.sh",
+        "src/main/bash/routines.sh",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
 )
 
 buildifier(

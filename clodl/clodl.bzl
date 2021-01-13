@@ -72,7 +72,7 @@ def _library_closure_impl(ctx):
     ctx.actions.run_shell(
         outputs = [output_file],
         inputs = depset([bash, grep, ldd, scanelf], transitive = [runfiles, files]),
-        tools = [ctx.executable._deps_tool] + cc_tools.to_list(),
+        tools = [ctx.executable._copy_closure_tool] + cc_tools.to_list(),
         arguments = [args],
         env = compiler_env,
         command = """
@@ -83,18 +83,13 @@ def _library_closure_impl(ctx):
         executable={executable}
         tmpdir=$(mktemp -d -p $PWD)
 
-        PATH={tools}:$PATH {deps} $srclibs -- {excludes} > libs.txt
-        for lib in $srclibs
-        do
-          echo $lib >> libs.txt
-        done
-        cp $(cat libs.txt) $tmpdir
+        PATH={tools}:$PATH {copy_closure} "$tmpdir" $srclibs -- {excludes}
 
         # Build the wrapper library that links directly to all dependencies.
         # Loading the wrapper ensures that the transitive dependencies are found
         # in the final closure no matter how the runpaths of the direct
         # dependencies were set.
-        cat libs.txt \
+        find $tmpdir/* \
           | sort | uniq \
           | sed "s/.*\\/\\(.*\\)/-l:\\1/" \
           > params
@@ -140,7 +135,7 @@ def _library_closure_impl(ctx):
             executable = ctx.attr.executable,
             excludes = excludes,
             n_excludes = "\n".join(ctx.attr.excludes),
-            deps = ctx.executable._deps_tool.path,
+            copy_closure = ctx.executable._copy_closure_tool.path,
             tools = ldd.dirname,
             compiler = compiler,
             compiler_options = quote_list(compiler_options),
@@ -155,11 +150,11 @@ library_closure = rule(
         "srcs": attr.label_list(),
         "excludes": attr.string_list(),
         "executable": attr.bool(),
-        "_deps_tool": attr.label(
+        "_copy_closure_tool": attr.label(
             executable = True,
             cfg = "host",
             allow_files = True,
-            default = Label("//:deps"),
+            default = Label("//:copy-closure"),
         ),
         "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
     },
