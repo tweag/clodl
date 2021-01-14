@@ -16,7 +16,13 @@ jobs:
     macos:
       xcode: "10.0"
     steps:
-      - checkout
+      - run:
+          name: Checkout
+          command: |
+            git --version
+            git clone -n https://github.com/tweag/clodl.git .
+            git checkout $CIRCLE_SHA1
+
       - run:
           name: Install Nix
           command: |
