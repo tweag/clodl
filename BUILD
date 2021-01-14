@@ -28,6 +28,7 @@ cc_binary(
 cc_binary(
     name = "loader",
     srcs = ["src/main/cc/loader.cc"],
+    linkopts = ["-ldl"],
 )
 
 java_library(
