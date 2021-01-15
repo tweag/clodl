@@ -77,6 +77,52 @@ JNIEXPORT void JNICALL Java_io_tweag_jarify_HaskellLibraryLoader_initializeHaske
   }
 }
 
+// Use the haskell main closure directly
+extern StgClosure ZCMain_main_closure __attribute__((weak));
+
+// Run the haskell main closure using the GHC public API. This replicates the behavior of hs_main
+// except it does not immediately exit.
+// @see https://github.com/ghc/ghc/blob/639e702b6129f501c539b158b982ed8489e3d09c/rts/RtsMain.c
+int do_main (int argc, char *argv[] )
+{
+    int exit_status;
+    SchedulerStatus status;
+
+    hs_init_with_rtsopts(&argc, &argv);
+
+    {
+        Capability *cap = rts_lock();
+        rts_evalLazyIO(&cap, &ZCMain_main_closure, NULL);
+        status = rts_getSchedStatus(cap);
+        rts_unlock(cap);
+    }
+
+    // check the status of the entire Haskell computation
+    switch (status) {
+    case Killed:
+        errorBelch("main thread exited (uncaught exception)");
+        exit_status = EXIT_KILLED;
+        break;
+    case Interrupted:
+        errorBelch("interrupted");
+        exit_status = EXIT_INTERRUPTED;
+        break;
+    case HeapExhausted:
+        exit_status = EXIT_HEAPOVERFLOW;
+        break;
+    case Success:
+        exit_status = EXIT_SUCCESS;
+        break;
+    default:
+        barf("main thread completed with invalid status");
+    }
+
+    // Shutdown the RTS but do not terminate the process
+    hs_exit();
+
+    return exit_status;
+}
+
 static jmp_buf bootstrap_env;
 
 /* A global callback defined in the GHC RTS. */
@@ -106,7 +152,7 @@ JNIEXPORT void JNICALL Java_io_tweag_jarify_JarifyMain_invokeMain
 	init_argv(env, appName, args, &argc, &argv);
 
 	// Call the Haskell main() function.
-	main(argc, argv);
+	do_main(argc, argv);
 
 cleanup:
 	fini_argv(argc, argv);
