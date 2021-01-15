@@ -26,7 +26,7 @@ public class HaskellLibraryLoader {
 		       StandardCopyOption.REPLACE_EXISTING);
 	    in.close();
 	    try {
-            loadApplication(jarifyAppZipFile, "libclodl-top.so");
+            loadApplication(jarifyAppZipFile);
 	    } finally {
 		jarifyAppZipFile.delete();
 	    }
@@ -36,7 +36,7 @@ public class HaskellLibraryLoader {
 	}
     }
 
-    private static void loadApplication(File archive, String appName)
+    private static void loadApplication(File archive)
 	throws IOException
     {
 	// Extract all files from the .zip archive.
@@ -57,7 +57,7 @@ public class HaskellLibraryLoader {
 	    zip.close();
 
 	    // Dynamically load the app.
-	    System.load(jarifyAppTmpDir.resolve(appName).toString());
+	    System.load(jarifyAppTmpDir.resolve("clodl-top0").toString());
 
 	    // Ensure libHSjarify is loaded, since the app may or may
 	    // not depend on it, then call its init function.

@@ -98,12 +98,7 @@ def _library_closure_impl(ctx):
           "{compiler_options}" \
           >> params
         echo '-Wl,-rpath=$ORIGIN' >> params
-        if [ $executable == False ]
-        then
-          echo -o $tmpdir/libclodl-top.so >> params
-        else
-          echo -o $tmpdir/clodl-exe-top >> params
-        fi
+        echo -o $tmpdir/clodl-top0 >> params
         {compiler} @params
 
         # zip all the libraries
@@ -164,6 +159,9 @@ library_closure = rule(
     Produces a zip file containing a closure of all the shared
     libraries needed to load the given shared libraries or executables.
 
+    The zip file contains a clodl-top0 wrapper library or executable,
+    linking to all of the other libraries.
+
     Example:
 
       ```bzl
@@ -188,11 +186,10 @@ library_closure = rule(
                 be excluded from the closure. Extended regular
                 expresions as provided by grep can be used here.
 
-      executable: Includes a wrapper in the zip file capable of executing the
-                  closure (`clodl-exe-top`). If executable is False, the wrapper
-                  is just a shared library `libclodl-top.so` that depends on
-                  all the other libraries in the closure.
-
+      executable: Includes a wrapper (`clodl-top0`) in the zip file capable
+                  of executing the closure . If executable is False, the wrapper
+                  is just a shared library that depends on all the other
+                  libraries in the closure.
     """,
 )
 
@@ -254,7 +251,7 @@ def binary_closure(name, src, excludes = [], **kwargs):
     tmpdir=\\$$(mktemp -d)
     trap "rm -rf '\\$$tmpdir'" EXIT
     unzip -q "\\$$0" -d "\\$$tmpdir" 2> /dev/null || true
-    "\\$$tmpdir/clodl-exe-top"
+    "\\$$tmpdir/clodl-top0"
     exit 0
 END
     chmod +x $@
