@@ -134,7 +134,7 @@ def _library_closure_impl(ctx):
         fi
 
         # zip all the libraries
-        zip -X -qjr $output_file $tmpdir
+        zip -0 -X -qjr $output_file $tmpdir
         rm -rf $tmpdir
 
         # Check that the excluded libraries have been really excluded.
