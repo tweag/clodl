@@ -106,7 +106,16 @@ copy_lib() {
     fi
 
     local lib
-    for lib in $(otool $OTOOL_ARCH -L "$ARG" | tail -n +$offset | sed "s/$TAB\(.*\) (.*)/'\\1'/" | xargs echo -n)
+    # First change absolute paths and then the others. This is an attempt to
+    # make room early to change other load commands.
+    for lib in $(otool $OTOOL_ARCH -L "$ARG" | tail -n +$offset | sed "s/$TAB\(.*\) (.*)/'\\1'/" | grep -e "^'/" | xargs echo -n)
+    do
+        if [ ! ${excluded_libs["${lib##*/}"]+defined} ]
+        then
+            install_name_tool -change "$lib" "@loader_path/${lib##*/}" "$DEST/$FILE_NAME"
+        fi
+    done
+    for lib in $(otool $OTOOL_ARCH -L "$ARG" | tail -n +$offset | sed "s/$TAB\(.*\) (.*)/'\\1'/" | grep -v -e "^'/" | xargs echo -n)
     do
         if [ ! ${excluded_libs["${lib##*/}"]+defined} ]
         then
