@@ -155,14 +155,6 @@ binary_closure(
     ],
 )
 
-sh_library(
-    name = "copy-closure-lib",
-    srcs = [
-        "src/main/bash/common/routines.sh",
-        "src/main/bash/routines.sh",
-    ],
-)
-
 sh_binary(
     name = "copy-closure",
     srcs = ["src/main/bash/copy-closure.sh"],
