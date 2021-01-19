@@ -52,16 +52,38 @@ def _library_closure_impl(ctx):
     grep = ctx.actions.declare_file("grep")
     ldd = ctx.actions.declare_file("ldd")
     scanelf = ctx.actions.declare_file("scanelf")
+    otool = ctx.actions.declare_file("otool")
+    install_name_tool = ctx.actions.declare_file("install_name_tool")
     ctx.actions.run_shell(
-        outputs = [bash, grep, ldd, scanelf],
+        outputs = [bash, grep, ldd, scanelf, otool, install_name_tool],
         use_default_shell_env = True,
         command = """
         set -eo pipefail
         ln -s $(command -v bash) {bash}
-        ln -s $(command -v ldd) {ldd}
+        if [[ $(uname -s) == "Darwin" ]]
+        then
+            touch {ldd}; chmod +x {ldd}
+        else
+            ln -s $(command -v ldd) {ldd}
+        fi
         ln -s $(command -v grep) {grep}
         ln -s $(command -v scanelf) {scanelf}
-        """.format(ldd = ldd.path, bash = bash.path, grep = grep.path, scanelf = scanelf.path),
+        if [[ $(uname -s) == "Darwin" ]]
+        then
+            ln -s $(command -v otool) {otool}
+            ln -s $(command -v install_name_tool) {install_name_tool}
+        else
+            touch {otool}; chmod +x {otool}
+            touch {install_name_tool}; chmod +x {install_name_tool}
+        fi
+        """.format(
+            ldd = ldd.path,
+            bash = bash.path,
+            grep = grep.path,
+            scanelf = scanelf.path,
+            otool = otool.path,
+            install_name_tool = install_name_tool.path,
+        ),
     )
 
     excludes = quote_list(ctx.attr.excludes)
@@ -71,8 +93,8 @@ def _library_closure_impl(ctx):
     args.add(output_file)
     ctx.actions.run_shell(
         outputs = [output_file],
-        inputs = depset([bash, grep, ldd, scanelf], transitive = [runfiles, files]),
-        tools = [ctx.executable._deps_tool] + cc_tools.to_list(),
+        inputs = depset([bash, grep, ldd, scanelf, otool, install_name_tool], transitive = [runfiles, files]),
+        tools = [ctx.executable._copy_closure_tool] + cc_tools.to_list(),
         arguments = [args],
         env = compiler_env,
         command = """
@@ -83,36 +105,36 @@ def _library_closure_impl(ctx):
         executable={executable}
         tmpdir=$(mktemp -d -p $PWD)
 
-        PATH={tools}:$PATH {deps} $srclibs -- {excludes} > libs.txt
-        for lib in $srclibs
-        do
-          echo $lib >> libs.txt
-        done
-        cp $(cat libs.txt) $tmpdir
+        PATH={tools}:$PATH {copy_closure} "$tmpdir" $srclibs -- {excludes}
 
-        # Build the wrapper library that links directly to all dependencies.
-        # Loading the wrapper ensures that the transitive dependencies are found
-        # in the final closure no matter how the runpaths of the direct
-        # dependencies were set.
-        cat libs.txt \
-          | sort | uniq \
-          | sed "s/.*\\/\\(.*\\)/-l:\\1/" \
-          > params
-        echo \
-          -L$tmpdir \
-          "{compiler_options}" \
-          >> params
-        echo '-Wl,-rpath=$ORIGIN' >> params
-        if [ $executable == False ]
+        if [[ $(uname -s) == "Darwin" ]]
         then
-          echo -o $tmpdir/libclodl-top.so >> params
+            i=0
+            for src in $srclibs
+            do
+                mv $tmpdir/${{src##*/}} $tmpdir/clodl-top$i
+                i=$((i+1))
+            done
         else
-          echo -o $tmpdir/clodl-exe-top >> params
+            # Build the wrapper library that links directly to all dependencies.
+            # Loading the wrapper ensures that the transitive dependencies are found
+            # in the final closure no matter how the runpaths of the direct
+            # dependencies were set.
+            find $tmpdir/* \
+              | sort -u \
+              | sed "s/.*\\/\\(.*\\)/-l:\\1/" \
+              > params
+            echo \
+              -L$tmpdir \
+              "{compiler_options}" \
+              >> params
+            echo '-Wl,-rpath=$ORIGIN' >> params
+            echo -o $tmpdir/clodl-top0 >> params
+            {compiler} @params
         fi
-        {compiler} @params
 
         # zip all the libraries
-        zip -X -qjr $output_file $tmpdir
+        zip -0 -X -qjr $output_file $tmpdir
         rm -rf $tmpdir
 
         # Check that the excluded libraries have been really excluded.
@@ -140,7 +162,7 @@ def _library_closure_impl(ctx):
             executable = ctx.attr.executable,
             excludes = excludes,
             n_excludes = "\n".join(ctx.attr.excludes),
-            deps = ctx.executable._deps_tool.path,
+            copy_closure = ctx.executable._copy_closure_tool.path,
             tools = ldd.dirname,
             compiler = compiler,
             compiler_options = quote_list(compiler_options),
@@ -155,11 +177,11 @@ library_closure = rule(
         "srcs": attr.label_list(),
         "excludes": attr.string_list(),
         "executable": attr.bool(),
-        "_deps_tool": attr.label(
+        "_copy_closure_tool": attr.label(
             executable = True,
             cfg = "host",
             allow_files = True,
-            default = Label("//:deps"),
+            default = Label("//:copy-closure"),
         ),
         "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
     },
@@ -168,6 +190,11 @@ library_closure = rule(
     doc = """
     Produces a zip file containing a closure of all the shared
     libraries needed to load the given shared libraries or executables.
+
+    The zip file contains a clodl-top0 wrapper library or executable,
+    linking to all of the other libraries. In OSX no wrapper is produced
+    but the given binaries in srcs are renamed to clodl-top0, clodl-top1,
+    etc, in the order they were given to library_closure.
 
     Example:
 
@@ -193,11 +220,10 @@ library_closure = rule(
                 be excluded from the closure. Extended regular
                 expresions as provided by grep can be used here.
 
-      executable: Includes a wrapper in the zip file capable of executing the
-                  closure (`clodl-exe-top`). If executable is False, the wrapper
-                  is just a shared library `libclodl-top.so` that depends on
-                  all the other libraries in the closure.
-
+      executable: Includes a wrapper (`clodl-top0`) in the zip file capable
+                  of executing the closure . If executable is False, the wrapper
+                  is just a shared library that depends on all the other
+                  libraries in the closure.
     """,
 )
 
@@ -259,7 +285,7 @@ def binary_closure(name, src, excludes = [], **kwargs):
     tmpdir=\\$$(mktemp -d)
     trap "rm -rf '\\$$tmpdir'" EXIT
     unzip -q "\\$$0" -d "\\$$tmpdir" 2> /dev/null || true
-    "\\$$tmpdir/clodl-exe-top"
+    "\\$$tmpdir/clodl-top0"
     exit 0
 END
     chmod +x $@

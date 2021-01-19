@@ -20,8 +20,8 @@ closure is a zip file appended to a script that uncompresses the file
 to a temporary folder and has `main` invoked.
 
 A library closure is a zip file containing the shared libraries in
-the closure, and provides a top-level library which depends on all of
-the others. When the closure is uncompressed, this top-level library
+the closure, and provides one or more top-level libraries which depends on all of
+the others. When the closure is uncompressed, these top-level libraries
 can be loaded into the address space of an existing process.
 
 Executing a closure in the address space of an existing process
@@ -110,7 +110,8 @@ java_binary(
 **Requirements:**
 * The [Bazel][bazel] build tool;
 * the [Nix][nix] package manager;
-* the `scanelf` tool from the `pax-utils` package.
+* in Linux, the `scanelf` tool from the `pax-utils` package;
+* in OSX, `otool` and `install_name_tool`.
 
 To build and test:
 
@@ -133,8 +134,8 @@ the compiler. For example with GCC,
 $ gcc -pie ...
 ```
 
-Some distributions create position independent executables by default
-(Ubuntu and Debian on some architectures).
+Some platforms create position independent executables by default
+(OSX, Ubuntu and Debian on some architectures).
 
 [wp-pic]: https://en.wikipedia.org/wiki/Position-independent_code
 

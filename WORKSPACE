@@ -15,14 +15,14 @@ haskell_repositories()
 
 load(
     "@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
-    "nixpkgs_git_repository",
+    "nixpkgs_local_repository",
     "nixpkgs_package",
     "nixpkgs_python_configure",
 )
 
-nixpkgs_git_repository(
+nixpkgs_local_repository(
     name = "nixpkgs",
-    revision = "e7ebd6be80d80000ea9efb62c589a827ba4c22dc",
+    nix_file = "//:nixpkgs.nix",
 )
 
 nixpkgs_python_configure(repository = "@nixpkgs")
@@ -118,7 +118,7 @@ load(
 
 nixpkgs_go_configure(repository = "@nixpkgs")
 
-load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies")
 
 go_rules_dependencies()
 

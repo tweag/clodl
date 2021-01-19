@@ -25,6 +25,12 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "loader",
+    srcs = ["src/main/cc/loader.cc"],
+    linkopts = ["-ldl"],
+)
+
 java_library(
     name = "base-jar",
     srcs = glob(["src/main/java/**/*.java"]),
@@ -36,11 +42,13 @@ haskell_binary(
     name = "hello-hs",
     testonly = True,
     srcs = ["src/test/haskell/hello/Main.hs"],
-    compiler_flags = [
-        "-threaded",
-        "-pie",
-        "-optl-Wl,--dynamic-list=main-symbol-list.ld",
-    ],
+    compiler_flags = ["-threaded"] + select({
+        "@bazel_tools//src/conditions:darwin": [],
+        "//conditions:default": [
+            "-pie",
+            "-optl-Wl,--dynamic-list=main-symbol-list.ld",
+        ],
+    }),
     extra_srcs = ["main-symbol-list.ld"],
     linkstatic = False,
     src_strip_prefix = "src/test/haskell/hello",
@@ -55,6 +63,8 @@ library_closure(
         "libbootstrap.so",
     ],
     excludes = [
+        "^/System/",
+        "^/usr/lib/",
         "ld-linux-x86-64\\.so.*",
         "libgcc_s\\.so.*",
         "libc\\.so.*",
@@ -69,6 +79,8 @@ binary_closure(
     testonly = True,
     src = "hello-hs",
     excludes = [
+        "^/System/",
+        "^/usr/lib/",
         "ld-linux-x86-64\\.so.*",
         "libgcc_s\\.so.*",
         "libc\\.so.*",
@@ -123,10 +135,13 @@ cc_binary(
     name = "hello-cc-pie",
     testonly = True,
     srcs = ["src/test/cc/hello/main.c"],
-    linkopts = [
-        "-pie",
-        "-Wl,--dynamic-list=main-symbol-list.ld",
-    ],
+    linkopts = select({
+        "@bazel_tools//src/conditions:darwin": [],
+        "//conditions:default": [
+            "-pie",
+            "-Wl,--dynamic-list=main-symbol-list.ld",
+        ],
+    }),
     deps = ["main-symbol-list.ld"],
 )
 
@@ -134,11 +149,23 @@ binary_closure(
     name = "clotestbin-cc-pie",
     testonly = True,
     src = "hello-cc-pie",
+    excludes = [
+        "^/System/",
+        "^/usr/lib/",
+    ],
 )
 
 sh_binary(
-    name = "deps",
-    srcs = ["src/main/bash/deps.sh"],
+    name = "copy-closure",
+    srcs = ["src/main/bash/copy-closure.sh"],
+    data = ["src/main/bash/common/routines.sh"] + select({
+        "@bazel_tools//src/conditions:darwin": [
+            "src/main/bash/darwin/routines.sh",
+            ":loader",
+        ],
+        "//conditions:default": ["src/main/bash/routines.sh"],
+    }),
+    deps = ["@bazel_tools//tools/bash/runfiles"],
 )
 
 buildifier(
