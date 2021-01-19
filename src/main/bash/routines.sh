@@ -38,6 +38,5 @@ collect_lib_paths() {
       | grep '=>' \
       | grep -v 'linux-vdso.so' \
       | sed "s/^.* => \\(.*\\) (0x[0-9a-f]*)/\\1/" \
-      | sort \
-      | uniq
+      | sort -u
 }

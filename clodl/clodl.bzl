@@ -121,7 +121,7 @@ def _library_closure_impl(ctx):
             # in the final closure no matter how the runpaths of the direct
             # dependencies were set.
             find $tmpdir/* \
-              | sort | uniq \
+              | sort -u \
               | sed "s/.*\\/\\(.*\\)/-l:\\1/" \
               > params
             echo \
