@@ -25,7 +25,7 @@ copy_lib() {
 #
 collect_lib_paths() {
 
-    libs_str=$(ldd "$@")
+    libs_str=$(ldd $(printf "%s\n" "$@" | xargs -n1 -d '\n' realpath))
 
     # Fail if there are any missing libraries
     if echo "$libs_str" | grep 'not found' 1>&2
