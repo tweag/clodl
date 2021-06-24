@@ -42,10 +42,13 @@ haskell_binary(
     name = "hello-hs",
     testonly = True,
     srcs = ["src/test/haskell/hello/Main.hs"],
-    compiler_flags = ["-threaded"] + select({
+    compiler_flags = [
+        "-threaded",
+        "-flink-rts",
+        "-shared",
+    ] + select({
         "@bazel_tools//src/conditions:darwin": [],
         "//conditions:default": [
-            "-pie",
             "-optl-Wl,--dynamic-list=main-symbol-list.ld",
         ],
     }),
@@ -62,22 +65,6 @@ library_closure(
         "hello-hs",
         "libbootstrap.so",
     ],
-    excludes = [
-        "^/System/",
-        "^/usr/lib/",
-        "ld-linux-x86-64\\.so.*",
-        "libgcc_s\\.so.*",
-        "libc\\.so.*",
-        "libdl\\.so.*",
-        "libm\\.so.*",
-        "libpthread\\.so.*",
-    ],
-)
-
-binary_closure(
-    name = "clotestbin",
-    testonly = True,
-    src = "hello-hs",
     excludes = [
         "^/System/",
         "^/usr/lib/",
@@ -129,30 +116,6 @@ binary_closure(
     name = "clotestbin-cc-norunfiles",
     testonly = True,
     src = "libhello-cc-norunfiles.so",
-)
-
-cc_binary(
-    name = "hello-cc-pie",
-    testonly = True,
-    srcs = ["src/test/cc/hello/main.c"],
-    linkopts = select({
-        "@bazel_tools//src/conditions:darwin": [],
-        "//conditions:default": [
-            "-pie",
-            "-Wl,--dynamic-list=main-symbol-list.ld",
-        ],
-    }),
-    deps = ["main-symbol-list.ld"],
-)
-
-binary_closure(
-    name = "clotestbin-cc-pie",
-    testonly = True,
-    src = "hello-cc-pie",
-    excludes = [
-        "^/System/",
-        "^/usr/lib/",
-    ],
 )
 
 sh_binary(

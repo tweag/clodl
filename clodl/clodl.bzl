@@ -229,20 +229,20 @@ library_closure = rule(
 
 def binary_closure(name, src, excludes = [], **kwargs):
     """
-    Produce a closure of a given position independent executable.
+    Produce a closure of a given shared library with a main function.
 
     Produces a zip file containing a closure of all the shared libraries needed
-    to load the given position independent executable or shared library defining
-    symbol main. The zipfile is prepended with a script that uncompresses the
-    zip file and executes main.
+    to load the shared library defining symbol main. The zipfile is prepended
+    with a script that uncompresses the zip file and executes main.
 
     Example:
       ```bzl
       cc_binary(
           name = "hello-cc",
           srcs = ["src/test/cc/hello/main.c"],
-          linkopts = ["-pie", "-Wl,--dynamic-list", "main-symbol-list.ld"],
+          linkopts = ["-Wl,--dynamic-list", "main-symbol-list.ld"],
           deps = ["main-symbol-list.ld"],
+          linkshared = 1,
       )
 
       binary_closure(
@@ -257,7 +257,7 @@ def binary_closure(name, src, excludes = [], **kwargs):
 
     Args:
       name: A unique name for this rule
-      src: The position independent executable or a shared library.
+      src: The shared library
       excludes: Same purpose as in library_closure
       **kwargs: Extra arguments
 

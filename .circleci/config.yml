@@ -69,8 +69,7 @@ jobs:
           shell: /bin/bash -eilo pipefail
           command: |
 
-            nix-shell --pure --run 'bazel run clotestbin'
-            nix-shell --pure --run 'bazel run clotestbin-cc-pie'
+            nix-shell --pure --run 'bazel run clotestbin-cc'
             nix-shell --pure --run 'bazel run hello-java'
 
         # see note about 'Disk cache'

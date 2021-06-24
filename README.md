@@ -4,9 +4,9 @@
 [![Build status in Darwin](https://circleci.com/gh/tweag/clodl/tree/master.svg?style=svg)](https://circleci.com/gh/tweag/clodl/tree/master)
 
 `clodl` computes the *closure* of a shared object. That is, given
-a shared library or a position independent executable (PIE), it
-returns a single, self-contained file packing all dependencies. Think
-of the result as a poor man's container image. Compared to containers:
+a shared library, it returns a single self-contained file packing all
+dependencies. Think of the result as a poor man's container image.
+Compared to containers:
 
 * closures **do not** provide isolation (e.g. separate process,
   network, filesystem namespaces),
@@ -59,7 +59,7 @@ haskell_binary(
     linkstatic = False,
     srcs = ["src/test/haskell/hello/Main.hs"],
     compiler_flags = [
-        "-pie",
+        "-lHSrts_thr-ghc9.0.1",
         "-rdynamic", # or "-optl-Wl,--dynamic-list=main-symbol-list.ld"
     ],
 	...
@@ -122,23 +122,6 @@ $ bazel run hello-java
 ```
 
 [nix]: https://nixos.org/nix
-
-## Usage
-
-Any shared library (`.so` file) or [position independent][wp-pic]
-(dynamically linked) executable (PIE) can be "closed" using `clodl`.
-
-To create a PIE on Linux and other platforms, pass the `-pie` flag to
-the compiler. For example with GCC,
-
-```
-$ gcc -pie ...
-```
-
-Some platforms create position independent executables by default
-(OSX, Ubuntu and Debian on some architectures).
-
-[wp-pic]: https://en.wikipedia.org/wiki/Position-independent_code
 
 ## License
 
