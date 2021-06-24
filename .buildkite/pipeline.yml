@@ -3,8 +3,8 @@ steps:
     command: |
       echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
       nix-shell --pure --run 'bazel build //...'
+      nix-shell --pure --run 'bazel run clotestbin'
       nix-shell --pure --run 'bazel run clotestbin-cc'
-      nix-shell --pure --run 'bazel run clotestbin-cc-norunfiles'
       nix-shell --pure --run 'bazel run hello-java'
       nix-shell --pure --run 'bazel run //:buildifier-diff'
     timeout: 30

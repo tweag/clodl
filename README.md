@@ -4,9 +4,9 @@
 [![Build status in Darwin](https://circleci.com/gh/tweag/clodl/tree/master.svg?style=svg)](https://circleci.com/gh/tweag/clodl/tree/master)
 
 `clodl` computes the *closure* of a shared object. That is, given
-a shared library, it returns a single self-contained file packing all
-dependencies. Think of the result as a poor man's container image.
-Compared to containers:
+an executable or shared library, it returns a single self-contained
+file packing all dependencies. Think of the result as a poor man's
+container image. Compared to containers:
 
 * closures **do not** provide isolation (e.g. separate process,
   network, filesystem namespaces),
@@ -39,15 +39,14 @@ Bazel build system, e.g. as follows:
 
 ```
 cc_binary(
-  name = "libhello.so",
+  name = "hello-cc",
   srcs = ["main.c"],
-  linkshared = 1,
   deps = ...
 )
 
 binary_closure(
   name = "hello-closure-bin",
-  src = "libhello.so",
+  src = "hello-cc",
 )
 ```
 
@@ -58,10 +57,6 @@ haskell_binary(
     name = "hello-hs",
     linkstatic = False,
     srcs = ["src/test/haskell/hello/Main.hs"],
-    compiler_flags = [
-        "-lHSrts_thr-ghc9.0.1",
-        "-rdynamic", # or "-optl-Wl,--dynamic-list=main-symbol-list.ld"
-    ],
 	...
 )
 

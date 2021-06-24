@@ -39,7 +39,7 @@ java_library(
 haskell_toolchain_library(name = "base")
 
 haskell_binary(
-    name = "hello-hs",
+    name = "hello-hs-lib",
     testonly = True,
     srcs = ["src/test/haskell/hello/Main.hs"],
     compiler_flags = [
@@ -58,11 +58,35 @@ haskell_binary(
     deps = [":base"],
 )
 
+haskell_binary(
+    name = "hello-hs",
+    testonly = True,
+    srcs = ["src/test/haskell/hello/Main.hs"],
+    compiler_flags = ["-threaded"],
+    deps = [":base"],
+)
+
+binary_closure(
+    name = "clotestbin",
+    testonly = True,
+    src = "hello-hs",
+    excludes = [
+        "^/System/",
+        "^/usr/lib/",
+        "ld-linux-x86-64\\.so.*",
+        "libgcc_s\\.so.*",
+        "libc\\.so.*",
+        "libdl\\.so.*",
+        "libm\\.so.*",
+        "libpthread\\.so.*",
+    ],
+)
+
 library_closure(
     name = "clotest",
     testonly = True,
     srcs = [
-        "hello-hs",
+        "hello-hs-lib",
         "libbootstrap.so",
     ],
     excludes = [
@@ -92,30 +116,20 @@ cc_library(
 )
 
 cc_binary(
-    name = "libhello-cc.so",
+    name = "hello-cc-exe",
     testonly = True,
     srcs = ["src/test/cc/hello/main.c"],
-    linkshared = 1,
     deps = ["lib-cc"],
 )
 
 binary_closure(
     name = "clotestbin-cc",
     testonly = True,
-    src = "libhello-cc.so",
-)
-
-cc_binary(
-    name = "libhello-cc-norunfiles.so",
-    testonly = True,
-    srcs = ["src/test/cc/hello/main.c"],
-    linkshared = 1,
-)
-
-binary_closure(
-    name = "clotestbin-cc-norunfiles",
-    testonly = True,
-    src = "libhello-cc-norunfiles.so",
+    src = "hello-cc-exe",
+    excludes = [
+        "^/System/",
+        "^/usr/lib/",
+    ],
 )
 
 sh_binary(

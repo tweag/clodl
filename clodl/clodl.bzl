@@ -51,11 +51,12 @@ def _library_closure_impl(ctx):
     bash = ctx.actions.declare_file("bash")
     grep = ctx.actions.declare_file("grep")
     ldd = ctx.actions.declare_file("ldd")
+    patchelf = ctx.actions.declare_file("patchelf")
     scanelf = ctx.actions.declare_file("scanelf")
     otool = ctx.actions.declare_file("otool")
     install_name_tool = ctx.actions.declare_file("install_name_tool")
     ctx.actions.run_shell(
-        outputs = [bash, grep, ldd, scanelf, otool, install_name_tool],
+        outputs = [bash, grep, ldd, patchelf, scanelf, otool, install_name_tool],
         use_default_shell_env = True,
         command = """
         set -eo pipefail
@@ -63,8 +64,10 @@ def _library_closure_impl(ctx):
         if [[ $(uname -s) == "Darwin" ]]
         then
             touch {ldd}; chmod +x {ldd}
+            touch {patchelf}; chmod +x {patchelf}
         else
             ln -s $(command -v ldd) {ldd}
+            ln -s $(command -v patchelf) {patchelf}
         fi
         ln -s $(command -v grep) {grep}
         ln -s $(command -v scanelf) {scanelf}
@@ -80,6 +83,7 @@ def _library_closure_impl(ctx):
             ldd = ldd.path,
             bash = bash.path,
             grep = grep.path,
+            patchelf = patchelf.path,
             scanelf = scanelf.path,
             otool = otool.path,
             install_name_tool = install_name_tool.path,
@@ -93,7 +97,7 @@ def _library_closure_impl(ctx):
     args.add(output_file)
     ctx.actions.run_shell(
         outputs = [output_file],
-        inputs = depset([bash, grep, ldd, scanelf, otool, install_name_tool], transitive = [runfiles, files]),
+        inputs = depset([bash, grep, ldd, patchelf, scanelf, otool, install_name_tool], transitive = [runfiles, files]),
         tools = [ctx.executable._copy_closure_tool] + cc_tools.to_list(),
         arguments = [args],
         env = compiler_env,
@@ -115,7 +119,8 @@ def _library_closure_impl(ctx):
                 mv $tmpdir/${{src##*/}} $tmpdir/clodl-top$i
                 i=$((i+1))
             done
-        else
+		elif [[ $executable == "False" ]]
+		then
             # Build the wrapper library that links directly to all dependencies.
             # Loading the wrapper ensures that the transitive dependencies are found
             # in the final closure no matter how the runpaths of the direct
@@ -131,6 +136,11 @@ def _library_closure_impl(ctx):
             echo '-Wl,-rpath=$ORIGIN' >> params
             echo -o $tmpdir/clodl-top0 >> params
             {compiler} @params
+		else
+		    cp $tmpdir/${{srclibs##*/}} $tmpdir/clodl-top0
+			chmod +w $tmpdir/clodl-top0
+			{tools}/patchelf --set-rpath '$ORIGIN' $tmpdir/clodl-top0
+			chmod -w $tmpdir/clodl-top0
         fi
 
         # zip all the libraries
@@ -229,20 +239,17 @@ library_closure = rule(
 
 def binary_closure(name, src, excludes = [], **kwargs):
     """
-    Produce a closure of a given shared library with a main function.
+    Produce a closure of a given executable.
 
     Produces a zip file containing a closure of all the shared libraries needed
-    to load the shared library defining symbol main. The zipfile is prepended
-    with a script that uncompresses the zip file and executes main.
+    to load the executable. The zipfile is prepended with a script that
+    uncompresses the zip file and executes the binary.
 
     Example:
       ```bzl
       cc_binary(
           name = "hello-cc",
           srcs = ["src/test/cc/hello/main.c"],
-          linkopts = ["-Wl,--dynamic-list", "main-symbol-list.ld"],
-          deps = ["main-symbol-list.ld"],
-          linkshared = 1,
       )
 
       binary_closure(
@@ -257,7 +264,7 @@ def binary_closure(name, src, excludes = [], **kwargs):
 
     Args:
       name: A unique name for this rule
-      src: The shared library
+      src: The executable
       excludes: Same purpose as in library_closure
       **kwargs: Extra arguments
 
