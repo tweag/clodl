@@ -130,5 +130,5 @@ copy_lib() {
 # Print the paths to dependencies needed by the given executables or shared libraries.
 #
 collect_lib_paths() {
-    DYLD_PRINT_LIBRARIES=1 $(rlocation io_tweag_clodl/loader) "$@" 2>&1 | sed "s/dyld: loaded: //" | sort -u
+    DYLD_PRINT_LIBRARIES=1 $(rlocation io_tweag_clodl/loader) "$@" 2>&1 | sed "s/dyld: loaded: \(<[^ ]*> \)\?//" | sort -u
 }
