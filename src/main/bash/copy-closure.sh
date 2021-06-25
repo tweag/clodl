@@ -41,7 +41,7 @@ declare -A paths
 while read lib
 do
     paths["${lib##*/}"]="$lib"
-done < <(collect_lib_paths "${tops[@]}")
+done < <(collect_lib_paths_without_static_libs "${tops[@]}")
 
 # needed is an associative array mapping paths to a list of names of
 # needed libraries.

@@ -38,9 +38,26 @@ declare -A excluded_libs
 # Fills the excluded libs array with the file names of
 # libraries which have been excluded.
 compute_excluded_libs() {
-	for lib in $(excluded_libraries "$@")
-	do
-	    excluded_libs["${lib##*/}"]=1
-	done
+    for lib in $(excluded_libraries "$@")
+    do
+        excluded_libs["${lib##*/}"]=1
+    done
 }
 
+# collect_lib_paths_without_static_libs FILES
+#
+# Print the paths to dependencies needed by the given executables or shared libraries.
+# Filters static libraries.
+#
+collect_lib_paths_without_static_libs() {
+    local f
+    declare -a nostatic=()
+    for f in "$@"
+    do
+        if [[ "${f##*.}" == "$f" || "${f##*.}" != "a" ]]
+        then
+            nostatic+=($f)
+        fi
+    done
+    collect_lib_paths  "${nostatic[@]}"
+}
