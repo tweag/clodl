@@ -16,7 +16,7 @@ needed_libs() {
 # Copies the shared library or executable to DEST.
 #
 copy_lib() {
-	cp "$@"
+    cp "$@"
 }
 
 # collect_lib_paths FILES

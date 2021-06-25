@@ -24,11 +24,11 @@ read_args() {
 # Prints the excluded libraries in stdout that match any
 # of the regexes in excludes.
 excluded_libraries() {
-	if [ ${#excludes[@]} -gt 0 ]
-	then
-		printf '%s\n' "$@" \
-		  | grep -E $(printf ' -e %s' "${excludes[@]}")
-	fi
+    if [ ${#excludes[@]} -gt 0 ]
+    then
+        printf '%s\n' "$@" \
+          | grep -E $(printf ' -e %s' "${excludes[@]}")
+    fi
 }
 
 declare -A excluded_libs
