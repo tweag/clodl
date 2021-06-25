@@ -55,7 +55,6 @@ With Haskell:
 ```
 haskell_binary(
     name = "hello-hs",
-    linkstatic = False,
     srcs = ["src/test/haskell/hello/Main.hs"],
 	...
 )
@@ -83,7 +82,6 @@ cc_binary(
   name = "libhello.so",
   srcs = ["main.c"],
   linkshared = 1,
-  linkstatic = 0,
   deps = ...
 )
 

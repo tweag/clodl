@@ -44,7 +44,9 @@ def _library_closure_impl(ctx):
 
     output_file = ctx.actions.declare_file(ctx.label.name + ".zip")
     cc_tools = ctx.attr._cc_toolchain.files
-    files = depset(ctx.files.srcs)
+    files = depset([f for f in ctx.files.srcs if f.extension != "a"])
+    if files == depset():
+        fail("no input files, or all of them are static libraries")
     runfiles = depset(transitive = [src.default_runfiles.files for src in ctx.attr.srcs])
 
     # find tools

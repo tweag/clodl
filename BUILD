@@ -3,6 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load(
     "@rules_haskell//haskell:defs.bzl",
     "haskell_binary",
+    "haskell_library",
     "haskell_toolchain_library",
 )
 load(
@@ -38,22 +39,14 @@ java_library(
 
 haskell_toolchain_library(name = "base")
 
-haskell_binary(
+haskell_library(
     name = "hello-hs-lib",
     testonly = True,
     srcs = ["src/test/haskell/hello/Main.hs"],
     compiler_flags = [
         "-threaded",
         "-flink-rts",
-        "-shared",
-    ] + select({
-        "@bazel_tools//src/conditions:darwin": [],
-        "//conditions:default": [
-            "-optl-Wl,--dynamic-list=main-symbol-list.ld",
-        ],
-    }),
-    extra_srcs = ["main-symbol-list.ld"],
-    linkstatic = False,
+    ],
     src_strip_prefix = "src/test/haskell/hello",
     deps = [":base"],
 )
