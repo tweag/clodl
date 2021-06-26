@@ -3,11 +3,33 @@ source $HERE/../common/routines.sh
 
 OTOOL_ARCH="-arch x86_64"
 
+# Produces the library name used by needed_libs
+#
+# Requires otool to be on the path.
+library_name() {
+    local arg=$1
+    name=$(otool $OTOOL_ARCH -D "$arg" | tail -n +2)
+    offset=3
+    # if otool -D yields no output, we assume this is a binary without
+    # and install name
+    if [[ z"$name" == z ]]
+    then
+        name=$arg
+        offset=2
+    fi
+    echo -n $name
+}
+
 # needed_libs FILES
 #
 # Produces the names of the libraries needed by the given shared libraries.
 #
-# The output is of the form [lib1]='needed libraries' [lib2]=...
+# The output is of the form
+#
+#     lib1 <needed libraries ...>
+#     lib2 <...>
+#     ...
+#
 # suitable for assignment of associative arrays.
 # 
 # Requires otool to be on the path.
@@ -26,7 +48,7 @@ needed_libs() {
             name=$arg
             offset=2
         fi
-        echo $name $(otool $OTOOL_ARCH -L "$arg" | tail -n +$offset | sed "s/$TAB.*\/\(.*\) (.*)/\\1/" | xargs echo -n)
+        library_name $arg; echo -n " "; otool $OTOOL_ARCH -L "$arg" | tail -n +$offset | sed "s/$TAB.*\/\(.*\) (.*)/\\1/" | xargs echo
     done
 }
 
