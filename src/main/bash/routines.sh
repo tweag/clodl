@@ -1,6 +1,11 @@
 HERE="$(builtin cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source $HERE/common/routines.sh
 
+# Produces the library name used by needed_libs
+library_name() {
+    echo -n $1
+}
+
 # Produces the names of the libraries needed by the given shared libraries.
 #
 # The output is of the form: lib1 'needed libraries' lib2 '...' ...
@@ -16,7 +21,7 @@ needed_libs() {
 # Copies the shared library or executable to DEST.
 #
 copy_lib() {
-	cp "$@"
+    cp "$@"
 }
 
 # collect_lib_paths FILES

@@ -3,6 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load(
     "@rules_haskell//haskell:defs.bzl",
     "haskell_binary",
+    "haskell_library",
     "haskell_toolchain_library",
 )
 load(
@@ -38,30 +39,30 @@ java_library(
 
 haskell_toolchain_library(name = "base")
 
-haskell_binary(
-    name = "hello-hs",
+haskell_library(
+    name = "hello-hs-lib",
     testonly = True,
     srcs = ["src/test/haskell/hello/Main.hs"],
-    compiler_flags = ["-threaded"] + select({
-        "@bazel_tools//src/conditions:darwin": [],
-        "//conditions:default": [
-            "-pie",
-            "-optl-Wl,--dynamic-list=main-symbol-list.ld",
-        ],
-    }),
-    extra_srcs = ["main-symbol-list.ld"],
-    linkstatic = False,
+    compiler_flags = [
+        "-threaded",
+        "-flink-rts",
+    ],
     src_strip_prefix = "src/test/haskell/hello",
     deps = [":base"],
 )
 
-library_closure(
-    name = "clotest",
+haskell_binary(
+    name = "hello-hs",
     testonly = True,
-    srcs = [
-        "hello-hs",
-        "libbootstrap.so",
-    ],
+    srcs = ["src/test/haskell/hello/Main.hs"],
+    compiler_flags = ["-threaded"],
+    deps = [":base"],
+)
+
+binary_closure(
+    name = "clotestbin",
+    testonly = True,
+    src = "hello-hs",
     excludes = [
         "^/System/",
         "^/usr/lib/",
@@ -74,10 +75,13 @@ library_closure(
     ],
 )
 
-binary_closure(
-    name = "clotestbin",
+library_closure(
+    name = "clotest",
     testonly = True,
-    src = "hello-hs",
+    srcs = [
+        "hello-hs-lib",
+        "libbootstrap.so",
+    ],
     excludes = [
         "^/System/",
         "^/usr/lib/",
@@ -105,50 +109,16 @@ cc_library(
 )
 
 cc_binary(
-    name = "libhello-cc.so",
+    name = "hello-cc-exe",
     testonly = True,
     srcs = ["src/test/cc/hello/main.c"],
-    linkshared = 1,
     deps = ["lib-cc"],
 )
 
 binary_closure(
     name = "clotestbin-cc",
     testonly = True,
-    src = "libhello-cc.so",
-)
-
-cc_binary(
-    name = "libhello-cc-norunfiles.so",
-    testonly = True,
-    srcs = ["src/test/cc/hello/main.c"],
-    linkshared = 1,
-)
-
-binary_closure(
-    name = "clotestbin-cc-norunfiles",
-    testonly = True,
-    src = "libhello-cc-norunfiles.so",
-)
-
-cc_binary(
-    name = "hello-cc-pie",
-    testonly = True,
-    srcs = ["src/test/cc/hello/main.c"],
-    linkopts = select({
-        "@bazel_tools//src/conditions:darwin": [],
-        "//conditions:default": [
-            "-pie",
-            "-Wl,--dynamic-list=main-symbol-list.ld",
-        ],
-    }),
-    deps = ["main-symbol-list.ld"],
-)
-
-binary_closure(
-    name = "clotestbin-cc-pie",
-    testonly = True,
-    src = "hello-cc-pie",
+    src = "hello-cc-exe",
     excludes = [
         "^/System/",
         "^/usr/lib/",

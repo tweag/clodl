@@ -3,11 +3,33 @@ source $HERE/../common/routines.sh
 
 OTOOL_ARCH="-arch x86_64"
 
+# Produces the library name used by needed_libs
+#
+# Requires otool to be on the path.
+library_name() {
+    local arg=$1
+    name=$(otool $OTOOL_ARCH -D "$arg" | tail -n +2)
+    offset=3
+    # if otool -D yields no output, we assume this is a binary without
+    # and install name
+    if [[ z"$name" == z ]]
+    then
+        name=$arg
+        offset=2
+    fi
+    echo -n $name
+}
+
 # needed_libs FILES
 #
 # Produces the names of the libraries needed by the given shared libraries.
 #
-# The output is of the form [lib1]='needed libraries' [lib2]=...
+# The output is of the form
+#
+#     lib1 <needed libraries ...>
+#     lib2 <...>
+#     ...
+#
 # suitable for assignment of associative arrays.
 # 
 # Requires otool to be on the path.
@@ -26,53 +48,7 @@ needed_libs() {
             name=$arg
             offset=2
         fi
-        echo $name $(otool $OTOOL_ARCH -L "$arg" | tail -n +$offset | sed "s/$TAB.*\/\(.*\) (.*)/\\1/" | xargs echo -n)
-    done
-}
-
-# tops contains the libraries to analyze.
-# excludes contains the regexes provided by the user.
-declare -a tops excludes=()
-
-# Populates tops and excludes with the arguments of
-# the invocation.
-read_args() {
-    local found_ddash=0
-    local arg
-    for arg in "$@"
-    do
-        [ "$arg" == "--" ] && { found_ddash=1; continue; }
-        if [ $found_ddash == "0" ]
-        then
-            tops+=($arg)
-        else
-            excludes+=($arg)
-        fi
-    done
-}
-
-# excluded_libraries lib1 lib2 lib3 ...
-# Prints the excluded libraries in stdout that match any
-# of the regexes in excludes.
-excluded_libraries() {
-    if [ ${#excludes[@]} -gt 0 ]
-    then
-        printf '%s\n' "$@" \
-          | grep -E $(printf ' -e %s' "${excludes[@]}")
-    fi
-}
-
-declare -A excluded_libs
-
-# compute_excluded_libs path/to/lib1 path/to/lib2 ...
-#
-# Fills the excluded libs array with the file names of
-# libraries which have been excluded.
-compute_excluded_libs() {
-    local lib
-    for lib in $(excluded_libraries "$@")
-    do
-        excluded_libs["${lib##*/}"]=1
+        library_name $arg; echo -n " "; otool $OTOOL_ARCH -L "$arg" | tail -n +$offset | sed "s/$TAB.*\/\(.*\) (.*)/\\1/" | xargs echo
     done
 }
 
@@ -130,5 +106,5 @@ copy_lib() {
 # Print the paths to dependencies needed by the given executables or shared libraries.
 #
 collect_lib_paths() {
-    DYLD_PRINT_LIBRARIES=1 $(rlocation io_tweag_clodl/loader) "$@" 2>&1 | sed "s/dyld: loaded: //" | sort -u
+    DYLD_PRINT_LIBRARIES=1 $(rlocation io_tweag_clodl/loader) "$@" 2>&1 | sed "s/dyld: loaded: \(<[^ ]*> \)\?//" | sort -u
 }

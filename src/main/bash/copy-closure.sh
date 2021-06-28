@@ -84,5 +84,5 @@ for libpath in "${tops[@]}"
 do
     echo "$libpath"
     copy_lib "$libpath" "$DEST"
-    traverse_deps $libpath
+    traverse_deps $(library_name "$libpath")
 done

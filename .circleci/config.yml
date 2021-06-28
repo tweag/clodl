@@ -26,7 +26,6 @@ jobs:
       - run:
           name: Install Nix
           command: |
-            HOMEBREW_NO_AUTO_UPDATE=1 brew install xz
             curl -L https://nixos.org/nix/install | sh
 
       - run:
@@ -70,7 +69,7 @@ jobs:
           command: |
 
             nix-shell --pure --run 'bazel run clotestbin'
-            nix-shell --pure --run 'bazel run clotestbin-cc-pie'
+            nix-shell --pure --run 'bazel run clotestbin-cc'
             nix-shell --pure --run 'bazel run hello-java'
 
         # see note about 'Disk cache'

@@ -1,6 +1,6 @@
 
 
-# tops contains the libraries to analyze.
+# tops contains the shared libraries and executables to analyze.
 # excludes contains the regexes provided by the user.
 declare -a tops excludes=()
 
@@ -24,11 +24,11 @@ read_args() {
 # Prints the excluded libraries in stdout that match any
 # of the regexes in excludes.
 excluded_libraries() {
-	if [ ${#excludes[@]} -gt 0 ]
-	then
-		printf '%s\n' "$@" \
-		  | grep -E $(printf ' -e %s' "${excludes[@]}")
-	fi
+    if [ ${#excludes[@]} -gt 0 ]
+    then
+        printf '%s\n' "$@" \
+          | grep -E $(printf ' -e %s' "${excludes[@]}")
+    fi
 }
 
 declare -A excluded_libs
@@ -38,9 +38,8 @@ declare -A excluded_libs
 # Fills the excluded libs array with the file names of
 # libraries which have been excluded.
 compute_excluded_libs() {
-	for lib in $(excluded_libraries "$@")
-	do
-	    excluded_libs["${lib##*/}"]=1
-	done
+    for lib in $(excluded_libraries "$@")
+    do
+        excluded_libs["${lib##*/}"]=1
+    done
 }
-
