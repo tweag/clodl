@@ -60,7 +60,7 @@ needed_libs() {
             name=$arg
             offset=2
         fi
-        library_name $arg; echo -n " "; otool $OTOOL_ARCH -L "$arg" | tail -n +$offset | sed "s/$TAB.*\/\(.*\) (.*)/\\1/" | xargs echo
+        echo -n "$name"; echo -n " "; otool $OTOOL_ARCH -L "$arg" | tail -n +$offset | sed "s/$TAB.*\/\(.*\) (.*)/\\1/" | xargs echo
     done
 }
 
