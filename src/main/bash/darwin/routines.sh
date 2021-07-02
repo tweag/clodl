@@ -3,19 +3,30 @@ source $HERE/../common/routines.sh
 
 OTOOL_ARCH="-arch x86_64"
 
+# otool_with_kill PID ARGS...
+#
+# Like "otool ARGS..." but kills PID if otool fails
+otool_with_kill() {
+	local PID="$1"
+	shift
+	local RC=0
+	otool "$@" || RC=$?
+	[[ $RC == 0 ]] || kill "$PID"
+	exit $RC
+}
+
 # Produces the library name used by needed_libs
 #
 # Requires otool to be on the path.
 library_name() {
     local arg=$1
-    name=$(otool $OTOOL_ARCH -D "$arg" | tail -n +2)
-    offset=3
+    local name
+    name=$(otool_with_kill $$ $OTOOL_ARCH -D "$arg" | tail -n +2)
     # if otool -D yields no output, we assume this is a binary without
     # and install name
     if [[ z"$name" == z ]]
     then
         name=$arg
-        offset=2
     fi
     echo -n $name
 }
@@ -39,7 +50,8 @@ needed_libs() {
     local arg
     for arg in "$@"
     do
-        name=$(otool $OTOOL_ARCH -D "$arg" | tail -n +2)
+        local name
+        name=$(otool_with_kill $$ $OTOOL_ARCH -D "$arg" | tail -n +2)
         offset=3
         # if otool -D yields no output, we assume this is a binary without
         # and install name
@@ -69,7 +81,8 @@ copy_lib() {
     local FILE_NAME="${ARG##*/}"
     cp "$ARG" "$DEST"
     chmod u+w "$DEST/$FILE_NAME"
-    local name=$(otool $OTOOL_ARCH -D "$ARG" | tail -n +2)
+    local name
+    name=$(otool_with_kill $$ $OTOOL_ARCH -D "$ARG" | tail -n +2)
     local offset=3
     # if otool -D yields no output, we assume this is a binary without
     # and install name
@@ -84,14 +97,14 @@ copy_lib() {
     local lib
     # First change absolute paths and then the others. This is an attempt to
     # make room early to change other load commands.
-    for lib in $(otool $OTOOL_ARCH -L "$ARG" | tail -n +$offset | sed "s/$TAB\(.*\) (.*)/'\\1'/" | grep -e "^'/" | xargs echo -n)
+    for lib in $(otool_with_kill $$ $OTOOL_ARCH -L "$ARG" | tail -n +$offset | sed "s/$TAB\(.*\) (.*)/'\\1'/" | grep -e "^'/" | xargs echo -n)
     do
         if [ ! ${excluded_libs["${lib##*/}"]+defined} ]
         then
             install_name_tool -change "$lib" "@loader_path/${lib##*/}" "$DEST/$FILE_NAME"
         fi
     done
-    for lib in $(otool $OTOOL_ARCH -L "$ARG" | tail -n +$offset | sed "s/$TAB\(.*\) (.*)/'\\1'/" | grep -v -e "^'/" | xargs echo -n)
+    for lib in $(otool_with_kill $$ $OTOOL_ARCH -L "$ARG" | tail -n +$offset | sed "s/$TAB\(.*\) (.*)/'\\1'/" | grep -v -e "^'/" | xargs echo -n)
     do
         if [ ! ${excluded_libs["${lib##*/}"]+defined} ]
         then
