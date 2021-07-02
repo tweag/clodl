@@ -160,7 +160,7 @@ def _library_closure_impl(ctx):
         echo '{n_excludes}' > $tmpx_file
 
         # Check that excluded libraries don't appear in the zip file.
-        if unzip -t $@ \
+        if unzip -t $output_file \
             | grep -e '^[ ]*testing: ' \
             | sed "s/^[ ]*testing: \\([^ ]*\\).*/\\1/" \
             | grep -Ef $tmpx_file
