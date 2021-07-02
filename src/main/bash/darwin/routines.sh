@@ -7,6 +7,9 @@ OTOOL_ARCH="-arch x86_64"
 # otool_with_kill PID ARGS...
 #
 # Like "otool ARGS..." but kills PID if otool fails
+#
+# Otherwise, set -e doesn't catch otool failures in MacOS
+# when they happen in subshells $(...)
 otool_with_kill() {
 	local PID="$1"
 	shift
