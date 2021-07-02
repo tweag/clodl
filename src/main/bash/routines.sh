@@ -14,7 +14,16 @@ library_name() {
 #
 # Requires scanelf to be on the path.
 needed_libs() {
-    scanelf -qn "$@" | sed "s/\([^ ]*\)  \(.*\)/\\2 \\1/;y/,/ /"
+    declare -a libs=()
+    # skip excluded libraries
+    for lib in "$@"
+    do
+        if [ ! ${excluded_libs["${lib##*/}"]+defined} ]
+        then
+            libs+=("$lib")
+        fi
+    done
+    scanelf -qn "${libs[@]}" | sed "s/\([^ ]*\)  \(.*\)/\\2 \\1/;y/,/ /"
 }
 
 # copy-lib FILE DEST

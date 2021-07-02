@@ -43,6 +43,8 @@ do
     paths["${lib##*/}"]="$lib"
 done < <(collect_lib_paths "${tops[@]}")
 
+compute_excluded_libs "${paths[@]}" "${tops[@]}"
+
 # needed is an associative array mapping paths to a list of names of
 # needed libraries.
 declare -A needed
@@ -50,8 +52,6 @@ while read -r key val
 do
 	needed[$key]="$val"
 done < <(needed_libs "${paths[@]}" "${tops[@]}")
-
-compute_excluded_libs "${paths[@]}" "${tops[@]}"
 
 # Libraries which should not be printed
 declare -A dont_print

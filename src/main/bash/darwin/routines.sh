@@ -51,6 +51,9 @@ needed_libs() {
     local arg
     for arg in "$@"
     do
+        # skip excluded libraries
+        [ ${excluded_libs["${arg##*/}"]+defined} ] && continue || true
+
         local name
         name=$(otool_with_kill $$ $OTOOL_ARCH -D "$arg" | tail -n +2)
         offset=3
