@@ -1,9 +1,10 @@
+# shellcheck shell=bash
 HERE="$(builtin cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source $HERE/common/routines.sh
+source "$HERE/common/routines.sh"
 
 # Produces the library name used by needed_libs
 library_name() {
-    echo -n $1
+    echo -n "$1"
 }
 
 # Produces the names of the libraries needed by the given shared libraries.
@@ -13,7 +14,7 @@ library_name() {
 #
 # Requires scanelf to be on the path.
 needed_libs() {
-    scanelf -qn "$@" | sed "s/\([^ ]*\)  \(.*\)/"\\2" "\\1"/;y/,/ /"
+    scanelf -qn "$@" | sed "s/\([^ ]*\)  \(.*\)/\\2 \\1/;y/,/ /"
 }
 
 # copy-lib FILE DEST

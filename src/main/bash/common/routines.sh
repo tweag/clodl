@@ -1,4 +1,4 @@
-
+# shellcheck shell=bash
 
 # tops contains the shared libraries and executables to analyze.
 # excludes contains the regexes provided by the user.
@@ -13,9 +13,9 @@ read_args() {
         [ "$arg" == "--" ] && { found_ddash=1; continue; }
         if [ $found_ddash == "0" ]
         then
-            tops+=($arg)
+            tops+=("$arg")
         else
-            excludes+=($arg)
+            excludes+=("$arg")
         fi
     done
 }

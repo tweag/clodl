@@ -38,7 +38,7 @@ read_args "$@"
 
 # paths is an associative array mapping each library name to its path. 
 declare -A paths
-while read lib
+while read -r lib
 do
     paths["${lib##*/}"]="$lib"
 done < <(collect_lib_paths "${tops[@]}")
@@ -73,7 +73,7 @@ traverse_deps() {
     do
         if [ ! ${dont_print["$lib"]+defined} ]
         then
-           copy_lib ${paths["$lib"]} "$DEST"
+           copy_lib "${paths["$lib"]}" "$DEST"
            dont_print["$lib"]=1
            traverse_deps "${paths["$lib"]}"
         fi
@@ -83,5 +83,5 @@ traverse_deps() {
 for libpath in "${tops[@]}"
 do
     copy_lib "$libpath" "$DEST"
-    traverse_deps $(library_name "$libpath")
+    traverse_deps "$(library_name "$libpath")"
 done

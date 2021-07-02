@@ -1,5 +1,6 @@
+# shellcheck shell=bash
 HERE="$(builtin cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source $HERE/../common/routines.sh
+source "$HERE/../common/routines.sh"
 
 OTOOL_ARCH="-arch x86_64"
 
@@ -28,7 +29,7 @@ library_name() {
     then
         name=$arg
     fi
-    echo -n $name
+    echo -n "$name"
 }
 
 # needed_libs FILES
