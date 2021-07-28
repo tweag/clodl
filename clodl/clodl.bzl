@@ -48,6 +48,15 @@ def _library_closure_impl(ctx):
     if files == depset():
         fail("no input files, or all of them are static libraries")
     runfiles = depset(transitive = [src.default_runfiles.files for src in ctx.attr.srcs])
+    transitive_library_deps = depset(
+        [
+            lib.dynamic_library
+            for src in ctx.attr.srcs
+            if CcInfo in src
+            for linker_input in src[CcInfo].linking_context.linker_inputs.to_list()
+            for lib in linker_input.libraries
+        ],
+    )
 
     # find tools
     bash = ctx.actions.declare_file("bash")
@@ -99,7 +108,7 @@ def _library_closure_impl(ctx):
     args.add(output_file)
     ctx.actions.run_shell(
         outputs = [output_file],
-        inputs = depset([bash, grep, ldd, patchelf, scanelf, otool, install_name_tool], transitive = [runfiles, files]),
+        inputs = depset([bash, grep, ldd, patchelf, scanelf, otool, install_name_tool], transitive = [runfiles, files, transitive_library_deps]),
         tools = [ctx.executable._copy_closure_tool] + cc_tools.to_list(),
         arguments = [args],
         env = compiler_env,
