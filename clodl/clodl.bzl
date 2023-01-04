@@ -122,6 +122,7 @@ def _library_closure_impl(ctx):
 
         PATH={tools}:$PATH {copy_closure} "$tmpdir" $srclibs -- {excludes}
 
+        find / -name loader
         if [[ $(uname -s) == "Darwin" ]]
         then
             i=0
