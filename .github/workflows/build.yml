@@ -26,7 +26,7 @@ jobs:
       - name: Build all
         run: |
           while true; do echo "."; sleep 60; done &
-          nix-shell --pure --run 'bazel build //...
+          nix-shell --pure --run 'bazel build //...'
       - name: Run tests
         run: |
           nix-shell --pure --run 'bazel run clotestbin'
