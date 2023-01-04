@@ -1,0 +1,34 @@
+name: Build & test
+on:
+  push:
+
+jobs:
+  test:
+    name: Run test
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Nix
+        run: |
+          sh <(curl -L https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
+          echo "/nix/var/nix/profiles/default/bin" >> $GITHUB_PATH
+      - name: Install cachix
+        run: |
+          nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/46113713d4f25579e07b78116a61ab6f178f4153
+      - name: Run cachix
+        run: |
+          /nix/store/nymwl8c8z74x87phpjg8ka1g54sw8s1q-cachix-0.6.1/bin/cachix use tweag &
+          /nix/store/nymwl8c8z74x87phpjg8ka1g54sw8s1q-cachix-0.6.1/bin/cachix watch-store tweag &
+      - name: Configure
+        run: |
+          mkdir -p ~/repo-cache ~/disk-cache
+          echo build --host_platform=@io_tweag_rules_nixpkgs//nixpkgs/platforms:host > .bazelrc.local
+      - name: Build all
+        run: |
+          while true; do echo "."; sleep 60; done &
+          nix-shell --pure --run 'bazel build //...
+      - name: Run tests
+        run: |
+          nix-shell --pure --run 'bazel run clotestbin'
+          nix-shell --pure --run 'bazel run clotestbin-cc'
+          nix-shell --pure --run 'bazel run hello-java'
