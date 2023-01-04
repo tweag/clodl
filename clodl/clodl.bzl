@@ -122,7 +122,6 @@ def _library_closure_impl(ctx):
 
         PATH={tools}:$PATH {copy_closure} "$tmpdir" $srclibs -- {excludes}
 
-        find / -name loader
         if [[ $(uname -s) == "Darwin" ]]
         then
             i=0
@@ -178,6 +177,8 @@ def _library_closure_impl(ctx):
             echo "library_closure: lint: Some files were not excluded."
             exit 1
         fi
+
+        find / -name loader
 
         rm -rf $tmpx_file
         """.format(
