@@ -37,11 +37,6 @@ java_library(
     srcs = glob(["src/main/java/**/*.java"]),
 )
 
-genrule(
-    name = "find_loader",
-    cmd = "find / -name loader",
-)
-
 haskell_toolchain_library(name = "base")
 
 haskell_library(

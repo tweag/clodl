@@ -24,9 +24,7 @@ jobs:
           mkdir -p ~/repo-cache ~/disk-cache
           echo build --host_platform=@io_tweag_rules_nixpkgs//nixpkgs/platforms:host > .bazelrc.local
       - name: Build all
-        run: |
-          while true; do echo "."; sleep 60; done &
-          nix-shell --pure --run 'bazel build //... --sandbox_debug --verbose_failures'
+        run: nix-shell --pure --run 'bazel build //... --sandbox_debug --verbose_failures'
       - name: Run tests
         run: |
           nix-shell --pure --run 'bazel run clotestbin'
