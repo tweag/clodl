@@ -178,8 +178,6 @@ def _library_closure_impl(ctx):
             exit 1
         fi
 
-        find / -name loader
-
         rm -rf $tmpx_file
         """.format(
             executable = ctx.attr.executable,
