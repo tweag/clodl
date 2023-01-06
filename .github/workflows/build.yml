@@ -7,21 +7,31 @@ jobs:
     name: Run test
     runs-on: macos-12
     steps:
-      - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v18
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        
+      - name: Install NixOS
+        uses: cachix/install-nix-action@v18
         with:
           nix_path: nixpkgs=./nixpkgs.nix
-      - uses: cachix/cachix-action@v10
+
+      - name: Install cachix
+        uses: cachix/cachix-action@v10
+
       - name: Run cachix
         run: |
           cachix use tweag &
           cachix watch-store tweag &
+
       - name: Configure
         run: |
           mkdir -p ~/repo-cache ~/disk-cache
           echo build --host_platform=@io_tweag_rules_nixpkgs//nixpkgs/platforms:host > .bazelrc.local
+
       - name: Build all
         run: nix-shell --pure --run 'bazel build //... --sandbox_debug --verbose_failures'
+
       - name: Run tests
         run: |
           nix-shell --pure --run 'bazel run clotestbin'
