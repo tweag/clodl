@@ -5,7 +5,7 @@ on:
 jobs:
   test:
     name: Run test
-    runs-on: macos-12
+    runs-on: ubuntu-latest
     steps:
 
       - name: Checkout
