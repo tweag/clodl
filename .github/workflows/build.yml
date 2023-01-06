@@ -8,17 +8,13 @@ jobs:
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v2
-      - name: Install Nix
-        run: |
-          sh <(curl -L https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
-          echo "/nix/var/nix/profiles/default/bin" >> $GITHUB_PATH
-      - name: Install cachix
-        run: |
-          nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/46113713d4f25579e07b78116a61ab6f178f4153
+      - uses: cachix/install-nix-action@v18
+        with:
+          nix_path: nixpkgs=./nixpkgs.nix
       - name: Run cachix
         run: |
-          /nix/store/nymwl8c8z74x87phpjg8ka1g54sw8s1q-cachix-0.6.1/bin/cachix use tweag &
-          /nix/store/nymwl8c8z74x87phpjg8ka1g54sw8s1q-cachix-0.6.1/bin/cachix watch-store tweag &
+          cachix use tweag &
+          cachix watch-store tweag &
       - name: Configure
         run: |
           mkdir -p ~/repo-cache ~/disk-cache
