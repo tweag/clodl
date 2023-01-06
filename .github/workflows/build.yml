@@ -22,9 +22,7 @@ jobs:
           name: tweag
 
       - name: Run cachix
-        run: |
-#          cachix use tweag &
-          cachix watch-store tweag &
+        run: cachix watch-store tweag &
 
       - name: Configure
         run: |
