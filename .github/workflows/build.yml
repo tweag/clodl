@@ -5,7 +5,13 @@ on:
 jobs:
   test:
     name: Run test
-    runs-on: macos-11
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-11
+    runs-on: ${{ matrix.os }}
     steps:
 
       - name: Checkout
