@@ -1,7 +1,6 @@
 # clodl: self-contained dynamic libraries
 
-[![Build status](https://badge.buildkite.com/2d086847c269703f6ce1f0dd97b64ea00196e2b8e8bb68d2fb.svg?branch=master)](https://buildkite.com/tweag-1/clodl)
-[![Build status in Darwin](https://circleci.com/gh/tweag/clodl/tree/master.svg?style=svg)](https://circleci.com/gh/tweag/clodl/tree/master)
+[![Build](https://github.com/tweag/clodl/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/tweag/clodl/actions/workflows/build.yml)
 
 `clodl` computes the *closure* of a shared object. That is, given
 an executable or shared library, it returns a single self-contained
