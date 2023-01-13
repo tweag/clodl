@@ -55,4 +55,4 @@ jobs:
           path: |
             ~/repo-cache
             ~/disk-cache
-          key: ${{ steps.restore-cache.outputs.key }}
+          key: ${{ steps.restore-cache.outputs.cache-primary-key }}
