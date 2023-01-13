@@ -58,4 +58,4 @@ jobs:
           path: |
             ~/repo-cache
             ~/disk-cache
-          key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+          key: repo-cache-${{ runner.os }}-nixpkgs-${{ env.cache-version }}-${{ github.run_id }}-${{ github.run_attempt }}
