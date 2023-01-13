@@ -33,12 +33,15 @@ jobs:
 
       - name: Mount Bazel cache
         uses: actions/cache/restore@v3
+        if: github.ref != 'refs/heads/master'
         id: restore-cache
         with:
           path: |
             ~/repo-cache
             ~/disk-cache
-          key: repo-cache-${{ runner.os }}-nixpkgs-${{ env.cache-version }}
+          key: repo-cache-${{ runner.os }}-nixpkgs-${{ env.cache-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            repo-cache-${{ runner.os }}-nixpkgs-${{ env.cache-version }}-
 
       - name: Build all
         run: nix-shell --pure --run 'bazel build //... --sandbox_debug --verbose_failures --repository_cache=~/repo-cache --disk_cache=~/disk-cache'
