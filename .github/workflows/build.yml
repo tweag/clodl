@@ -20,16 +20,15 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v2
-        
+
       - name: Install NixOS
-        uses: cachix/install-nix-action@v18
+        uses: cachix/install-nix-action@v24
         with:
           nix_path: nixpkgs=./nixpkgs.nix
 
       - name: Configure
         run: |
           mkdir -p ~/repo-cache ~/disk-cache
-          echo build --host_platform=@io_tweag_rules_nixpkgs//nixpkgs/platforms:host > .bazelrc.local
 
       - name: Mount Bazel cache
         uses: actions/cache/restore@v3
