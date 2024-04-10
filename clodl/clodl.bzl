@@ -300,10 +300,10 @@ def binary_closure(name, src, excludes = [], **kwargs):
     cat - "$$zip_file_path" > $@ <<END
     #!/usr/bin/env bash
     set -eu
-    tmpdir=\\$$(mktemp -d)
+    tmpdir="\\$$(mktemp -d)"
     trap "rm -rf '\\$$tmpdir'" EXIT
     unzip -q "\\$$0" -d "\\$$tmpdir" 2> /dev/null || true
-    "\\$$tmpdir/clodl-top0"
+    "\\$$tmpdir/ld-linux-x86-64.so.2" --library-path "\\$$tmpdir" "\\$$tmpdir/clodl-top0"
     exit 0
 END
     chmod +x $@

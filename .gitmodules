@@ -1,0 +1,3 @@
+[submodule "third_party/bazel_local_nix"]
+	path = third_party/bazel_local_nix
+	url = git@github.com:filmil/bazel_local_nix
