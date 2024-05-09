@@ -1,0 +1,99 @@
+workspace(name = "io_tweag_clodl_tests")
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+###############
+## clodl setup
+###############
+
+local_repository(
+    name = "io_tweag_clodl",
+    path = "..",
+)
+
+##############################################
+## other language specific setup for examples
+##############################################
+
+http_archive(
+    name = "rules_haskell",
+    sha256 = "110073731641ab509780b609bbba144c249a2c2f1a10e469eec47e1ceacf4bad",
+    strip_prefix = "rules_haskell-6604b8c19701a64986e98d475959ff2a2e8a1379",
+    urls = ["https://github.com/tweag/rules_haskell/archive/6604b8c19701a64986e98d475959ff2a2e8a1379.tar.gz"],
+)
+
+load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
+
+haskell_repositories()
+
+load(
+    "@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
+    "nixpkgs_local_repository",
+    "nixpkgs_package",
+    "nixpkgs_python_configure",
+)
+
+nixpkgs_local_repository(
+    name = "nixpkgs",
+    nix_file = "//:nixpkgs.nix",
+)
+
+nixpkgs_python_configure(repository = "@nixpkgs")
+
+load("@rules_haskell//haskell:nixpkgs.bzl", "haskell_register_ghc_nixpkgs")
+
+nixpkgs_package(
+    name = "glibc_locales",
+    attribute_path = "glibcLocales",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "locale-archive",
+    srcs = ["lib/locale/locale-archive"],
+)
+""",
+    repository = "@nixpkgs",
+)
+
+haskell_register_ghc_nixpkgs(
+    attribute_path = "haskell.compiler.ghc901",
+    build_file_content = """
+package(default_visibility = [ "//visibility:public" ])
+
+filegroup(
+    name = "bin",
+    srcs = glob(["bin/*"]),
+)
+
+cc_library(
+    name = "include",
+    hdrs = glob(["lib/ghc-*/include/**/*.h"]),
+    strip_include_prefix = glob(["lib/ghc-*/include"], exclude_directories=0)[0],
+)
+""",
+    compiler_flags = [
+        "-Werror",
+        "-Wall",
+        "-Wcompat",
+        "-Wincomplete-record-updates",
+        "-Wredundant-constraints",
+    ],
+    locale_archive = "@glibc_locales//:locale-archive",
+    repositories = {"nixpkgs": "@nixpkgs"},
+    version = "9.0.1",
+)
+
+nixpkgs_package(
+    name = "openjdk",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "include",
+    hdrs = glob(["include/*.h"]),
+    strip_include_prefix = "include",
+)
+""",
+    repository = "@nixpkgs",
+)

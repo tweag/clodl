@@ -3,89 +3,6 @@ workspace(name = "io_tweag_clodl")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
-    name = "rules_haskell",
-    sha256 = "110073731641ab509780b609bbba144c249a2c2f1a10e469eec47e1ceacf4bad",
-    strip_prefix = "rules_haskell-6604b8c19701a64986e98d475959ff2a2e8a1379",
-    urls = ["https://github.com/tweag/rules_haskell/archive/6604b8c19701a64986e98d475959ff2a2e8a1379.tar.gz"],
-)
-
-load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
-
-haskell_repositories()
-
-load(
-    "@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
-    "nixpkgs_local_repository",
-    "nixpkgs_package",
-    "nixpkgs_python_configure",
-)
-
-nixpkgs_local_repository(
-    name = "nixpkgs",
-    nix_file = "//:nixpkgs.nix",
-)
-
-nixpkgs_python_configure(repository = "@nixpkgs")
-
-load("@rules_haskell//haskell:nixpkgs.bzl", "haskell_register_ghc_nixpkgs")
-
-nixpkgs_package(
-    name = "glibc_locales",
-    attribute_path = "glibcLocales",
-    build_file_content = """
-package(default_visibility = ["//visibility:public"])
-
-filegroup(
-    name = "locale-archive",
-    srcs = ["lib/locale/locale-archive"],
-)
-""",
-    repository = "@nixpkgs",
-)
-
-haskell_register_ghc_nixpkgs(
-    attribute_path = "haskell.compiler.ghc901",
-    build_file_content = """
-package(default_visibility = [ "//visibility:public" ])
-
-filegroup(
-    name = "bin",
-    srcs = glob(["bin/*"]),
-)
-
-cc_library(
-    name = "include",
-    hdrs = glob(["lib/ghc-*/include/**/*.h"]),
-    strip_include_prefix = glob(["lib/ghc-*/include"], exclude_directories=0)[0],
-)
-""",
-    compiler_flags = [
-        "-Werror",
-        "-Wall",
-        "-Wcompat",
-        "-Wincomplete-record-updates",
-        "-Wredundant-constraints",
-    ],
-    locale_archive = "@glibc_locales//:locale-archive",
-    repositories = {"nixpkgs": "@nixpkgs"},
-    version = "9.0.1",
-)
-
-nixpkgs_package(
-    name = "openjdk",
-    build_file_content = """
-package(default_visibility = ["//visibility:public"])
-
-cc_library(
-    name = "include",
-    hdrs = glob(["include/*.h"]),
-    strip_include_prefix = "include",
-)
-""",
-    repository = "@nixpkgs",
-)
-
-http_archive(
     name = "io_bazel_stardoc",
     sha256 = "6d07d18c15abb0f6d393adbd6075cd661a2219faab56a9517741f0fc755f6f3c",
     strip_prefix = "stardoc-0.4.0",
@@ -111,9 +28,32 @@ http_archive(
     ],
 )
 
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "e5d90f0ec952883d56747b7604e2a15ee36e288bb556c3d0ed33e818a4d971f2",
+    strip_prefix = "bazel-skylib-1.0.2",
+    urls = ["https://github.com/bazelbuild/bazel-skylib/archive/1.0.2.tar.gz"],
+)
+
+http_archive(
+    name = "io_tweag_rules_nixpkgs",
+    sha256 = "5c80f5ed7b399a857dd04aa81e66efcb012906b268ce607aaf491d8d71f456c8",
+    strip_prefix = "rules_nixpkgs-0.7.0",
+    urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.7.0.tar.gz"],
+)
+
 load(
     "@io_tweag_rules_nixpkgs//nixpkgs:toolchains/go.bzl",
     "nixpkgs_go_configure",
+)
+load(
+    "@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
+    "nixpkgs_local_repository",
+)
+
+nixpkgs_local_repository(
+    name = "nixpkgs",
+    nix_file = "//:nixpkgs.nix",
 )
 
 nixpkgs_go_configure(repository = "@nixpkgs")
@@ -137,8 +77,11 @@ gazelle_dependencies()
 
 http_archive(
     name = "com_google_protobuf",
-    strip_prefix = "protobuf-master",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/master.zip"],
+    sha256 = "e8c7601439dbd4489fe5069c33d374804990a56c2f710e00227ee5d8fd650e67",
+    strip_prefix = "protobuf-3.11.2",
+    urls = [
+        "https://github.com/google/protobuf/archive/v3.11.2.tar.gz",
+    ],
 )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")

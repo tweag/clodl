@@ -98,6 +98,31 @@ java_binary(
 )
 ```
 
+## Importing clodl
+
+`WORKSPACE` file
+```
+http_archive(
+    name = "io_tweag_clodl",
+    sha256 = "1181131b0fc111a1f16f0532605e9835e308ac5bc278b62f825adb0844ff7590",
+    strip_prefix = "clodl-0a7a2f93f4043a2db623f7d820578e3baea228d1",
+    urls = ["https://github.com/tweag/clodl/archive/0a7a2f93f4043a2db623f7d820578e3baea228d1.tar.gz"],
+)
+
+...
+```
+
+BUILD files
+```
+load(
+    "@io_tweag_clodl//clodl:clodl.bzl",
+    "binary_closure",
+    "library_closure",
+)
+
+...
+```
+
 ## Building it
 
 **Requirements:**
@@ -110,7 +135,7 @@ To build and test:
 
 ```
 $ bazel build //...
-$ bazel run hello-java
+$ (cd tests; bazel run hello-java)
 ```
 
 [nix]: https://nixos.org/nix
