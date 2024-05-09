@@ -100,7 +100,7 @@ java_binary(
 
 ## Importing clodl
 
-`WORKSPACE` file
+In the `WORKSPACE` file:
 ```
 http_archive(
     name = "io_tweag_clodl",
@@ -112,7 +112,7 @@ http_archive(
 ...
 ```
 
-BUILD files
+In `BUILD` files:
 ```
 load(
     "@io_tweag_clodl//clodl:clodl.bzl",
