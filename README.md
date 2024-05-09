@@ -103,7 +103,7 @@ java_binary(
 **Requirements:**
 * The [Bazel][bazel] build tool;
 * the [Nix][nix] package manager;
-* in Linux, the `scanelf` tool from the `pax-utils` package;
+* in Linux, the `scanelf` tool from the `pax-utils` package and the `patchelf` tool;
 * in OSX, `otool` and `install_name_tool`.
 
 To build and test:
