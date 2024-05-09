@@ -54,7 +54,13 @@ jobs:
           nix-shell --pure --run 'cd tests; bazel run hello-java'
 
       - name: Run buildifier
-        run: nix-shell --pure --run 'bazel run //buildifier:buildifier-diff'
+        run: |
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]
+          then
+            nix-shell --pure --run 'bazel run //buildifier:buildifier-diff'
+          else
+            echo "skipping buildifier in macos"
+          fi
 
       - uses: actions/cache/save@v3
         if: github.ref == 'refs/heads/master'
