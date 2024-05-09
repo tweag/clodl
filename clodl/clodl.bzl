@@ -303,7 +303,8 @@ def binary_closure(name, src, excludes = [], **kwargs):
     tmpdir=\\$$(mktemp -d)
     trap "rm -rf '\\$$tmpdir'" EXIT
     unzip -q "\\$$0" -d "\\$$tmpdir" 2> /dev/null || true
-    "\\$$tmpdir/clodl-top0"
+    INTERP=\\$$(ls -1 \\$$tmpdir/ld-linux-* | head -1)
+    \\$$INTERP "\\$$tmpdir/clodl-top0"
     exit 0
 END
     chmod +x $@

@@ -66,7 +66,6 @@ binary_closure(
     excludes = [
         "^/System/",
         "^/usr/lib/",
-        "ld-linux-x86-64\\.so.*",
         "libgcc_s\\.so.*",
         "libc\\.so.*",
         "libdl\\.so.*",
@@ -85,7 +84,6 @@ library_closure(
     excludes = [
         "^/System/",
         "^/usr/lib/",
-        "ld-linux-x86-64\\.so.*",
         "libgcc_s\\.so.*",
         "libc\\.so.*",
         "libdl\\.so.*",
