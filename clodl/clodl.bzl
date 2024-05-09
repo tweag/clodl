@@ -290,6 +290,10 @@ def binary_closure(name, src, excludes = [], **kwargs):
     )
 
     # Prepend a script to execute the closure
+    #
+    # The closure will include the ELF interpreter in linux since this
+    # is considered a dependency by the copy-closure script, unless the
+    # user excludes it with a regex.
     native.genrule(
         name = name,
         srcs = [zip_name],
