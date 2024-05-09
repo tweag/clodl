@@ -64,7 +64,7 @@ binary_closure(
 )
 ```
 
-The [BUILD file](BUILD) has complete examples.
+The [test BUILD file](tests/BUILD) has complete examples.
 
 [bazel]: https://bazel.build
 [bazel-rules]: https://docs.bazel.build/versions/master/skylark/rules.html
