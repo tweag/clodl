@@ -130,8 +130,8 @@ def _library_closure_impl(ctx):
                 mv $tmpdir/${{src##*/}} $tmpdir/clodl-top$i
                 i=$((i+1))
             done
-		elif [[ $executable == "False" ]]
-		then
+        elif [[ $executable == "False" ]]
+        then
             # Build the wrapper library that links directly to all dependencies.
             # Loading the wrapper ensures that the transitive dependencies are found
             # in the final closure no matter how the runpaths of the direct
@@ -147,11 +147,11 @@ def _library_closure_impl(ctx):
             echo '-Wl,-rpath=$ORIGIN' >> params
             echo -o $tmpdir/clodl-top0 >> params
             {compiler} @params
-		else
-		    cp $tmpdir/${{srclibs##*/}} $tmpdir/clodl-top0
-			chmod +w $tmpdir/clodl-top0
-			{tools}/patchelf --set-rpath '$ORIGIN' $tmpdir/clodl-top0
-			chmod -w $tmpdir/clodl-top0
+        else
+            cp $tmpdir/${{srclibs##*/}} $tmpdir/clodl-top0
+            chmod +w $tmpdir/clodl-top0
+            {tools}/patchelf --set-rpath '$ORIGIN' $tmpdir/clodl-top0
+            chmod -w $tmpdir/clodl-top0
         fi
 
         # zip all the libraries
