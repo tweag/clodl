@@ -104,9 +104,9 @@ java_binary(
 ```
 http_archive(
     name = "io_tweag_clodl",
-    sha256 = "110073731641ab509780b609bbba144c249a2c2f1a10e469eec47e1ceacf4bad",
-    strip_prefix = "clodl-6604b8c19701a64986e98d475959ff2a2e8a1379",
-    urls = ["https://github.com/tweag/clodl/archive/6604b8c19701a64986e98d475959ff2a2e8a1379.tar.gz"],
+    sha256 = "1181131b0fc111a1f16f0532605e9835e308ac5bc278b62f825adb0844ff7590",
+    strip_prefix = "clodl-0a7a2f93f4043a2db623f7d820578e3baea228d1",
+    urls = ["https://github.com/tweag/clodl/archive/0a7a2f93f4043a2db623f7d820578e3baea228d1.tar.gz"],
 )
 
 ...
