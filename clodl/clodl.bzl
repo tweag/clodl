@@ -290,6 +290,10 @@ def binary_closure(name, src, excludes = [], **kwargs):
     )
 
     # Prepend a script to execute the closure
+    #
+    # The closure will include the ELF interpreter in linux since this
+    # is considered a dependency by the copy-closure script, unless the
+    # user excludes it with a regex.
     native.genrule(
         name = name,
         srcs = [zip_name],
@@ -303,7 +307,8 @@ def binary_closure(name, src, excludes = [], **kwargs):
     tmpdir=\\$$(mktemp -d)
     trap "rm -rf '\\$$tmpdir'" EXIT
     unzip -q "\\$$0" -d "\\$$tmpdir" 2> /dev/null || true
-    "\\$$tmpdir/clodl-top0"
+    INTERP=\\$$(ls -1 \\$$tmpdir/ld-linux-* | head -1)
+    \\$$INTERP "\\$$tmpdir/clodl-top0"
     exit 0
 END
     chmod +x $@
