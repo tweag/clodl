@@ -43,13 +43,18 @@ jobs:
             repo-cache-${{ runner.os }}-nixpkgs-${{ env.cache-version }}-
 
       - name: Build all
-        run: nix-shell --pure --run 'bazel build //... --sandbox_debug --verbose_failures --repository_cache=~/repo-cache --disk_cache=~/disk-cache'
+        run: |
+          nix-shell --pure --run 'bazel build //... --sandbox_debug --verbose_failures --repository_cache=~/repo-cache --disk_cache=~/disk-cache'
+          nix-shell --pure --run 'cd tests; bazel build //... --sandbox_debug --verbose_failures --repository_cache=~/repo-cache --disk_cache=~/disk-cache'
 
       - name: Run tests
         run: |
-          nix-shell --pure --run 'bazel run clotestbin'
-          nix-shell --pure --run 'bazel run clotestbin-cc'
-          nix-shell --pure --run 'bazel run hello-java'
+          nix-shell --pure --run 'cd tests; bazel run clotestbin'
+          nix-shell --pure --run 'cd tests; bazel run clotestbin-cc'
+          nix-shell --pure --run 'cd tests; bazel run hello-java'
+
+      - name: Run buildifier
+        run: nix-shell --pure --run 'bazel run //buildifier:buildifier-diff'
 
       - uses: actions/cache/save@v3
         if: github.ref == 'refs/heads/master'
