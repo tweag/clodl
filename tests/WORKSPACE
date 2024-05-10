@@ -17,14 +17,14 @@ local_repository(
 
 http_archive(
     name = "rules_haskell",
-    sha256 = "110073731641ab509780b609bbba144c249a2c2f1a10e469eec47e1ceacf4bad",
-    strip_prefix = "rules_haskell-6604b8c19701a64986e98d475959ff2a2e8a1379",
-    urls = ["https://github.com/tweag/rules_haskell/archive/6604b8c19701a64986e98d475959ff2a2e8a1379.tar.gz"],
+    sha256 = "2a07b55c30e526c07138c717b0343a07649e27008a873f2508ffab3074f3d4f3",
+    strip_prefix = "rules_haskell-0.16",
+    urls = ["https://github.com/tweag/rules_haskell/archive/v0.16.tar.gz"],
 )
 
-load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
+load("@rules_haskell//haskell:repositories.bzl", "rules_haskell_dependencies")
 
-haskell_repositories()
+rules_haskell_dependencies()
 
 load(
     "@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
