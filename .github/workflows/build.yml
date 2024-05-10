@@ -47,6 +47,9 @@ jobs:
           nix-shell --pure --run 'bazel build //... --sandbox_debug --verbose_failures --repository_cache=~/repo-cache --disk_cache=~/disk-cache'
           nix-shell --pure --run 'cd tests; bazel build //... --sandbox_debug --verbose_failures --repository_cache=~/repo-cache --disk_cache=~/disk-cache'
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Run tests
         run: |
           nix-shell --pure --run 'cd tests; bazel run clotestbin'
