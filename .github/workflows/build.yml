@@ -42,6 +42,9 @@ jobs:
           restore-keys: |
             repo-cache-${{ runner.os }}-nixpkgs-${{ env.cache-version }}-
 
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+
       - name: Build all
         run: |
           nix-shell --pure --run 'bazel build //... --sandbox_debug --verbose_failures --repository_cache=~/repo-cache --disk_cache=~/disk-cache'
