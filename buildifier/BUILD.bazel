@@ -1,0 +1,17 @@
+load("@buildifier_prebuilt//:rules.bzl", "buildifier")
+
+buildifier(
+    name = "buildifier-diff",
+    exclude_patterns = [
+        "./.git/*",
+    ],
+    mode = "diff",
+)
+
+buildifier(
+    name = "buildifier",
+    exclude_patterns = [
+        "./.git/*",
+    ],
+    lint_mode = "warn",
+)

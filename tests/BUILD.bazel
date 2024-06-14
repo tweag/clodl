@@ -36,7 +36,7 @@ haskell_library(
     name = "hello-hs-lib",
     testonly = True,
     srcs = ["src/test/haskell/hello/Main.hs"],
-    compiler_flags = [
+    ghcopts = [
         "-threaded",
         "-flink-rts",
     ],
@@ -48,7 +48,7 @@ haskell_binary(
     name = "hello-hs",
     testonly = True,
     srcs = ["src/test/haskell/hello/Main.hs"],
-    compiler_flags = ["-threaded"],
+    ghcopts = ["-threaded"],
     deps = [":base"],
 )
 
