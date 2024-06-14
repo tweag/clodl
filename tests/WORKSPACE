@@ -57,7 +57,7 @@ filegroup(
 )
 
 haskell_register_ghc_nixpkgs(
-    attribute_path = "haskell.compiler.ghc901",
+    attribute_path = "haskell.compiler.ghc902",
     build_file_content = """
 package(default_visibility = [ "//visibility:public" ])
 
@@ -81,7 +81,7 @@ cc_library(
     ],
     locale_archive = "@glibc_locales//:locale-archive",
     repositories = {"nixpkgs": "@nixpkgs"},
-    version = "9.0.1",
+    version = "9.0.2",
 )
 
 nixpkgs_package(
