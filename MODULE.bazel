@@ -8,8 +8,38 @@ bazel_dep(name = "rules_nixpkgs_core", version = "0.11.1")
 bazel_dep(name = "stardoc", version = "0.6.2")
 
 nix_repo = use_extension("@rules_nixpkgs_core//extensions:repository.bzl", "nix_repo")
-nix_repo.nixpkgs_local_repository(
+nix_repo.file(
     name = "nixpkgs",
-    nix_file = "//:nixpkgs.nix",
+    file = "//:nixpkgs.nix",
 )
 use_repo(nix_repo, "nixpkgs")
+
+http_archive = use_repo_rule(
+    "@bazel_tools//tools/build_defs/repo:http.bzl",
+    "http_archive",
+)
+bazel_dep(name = "platforms", version = "0.0.10", dev_dependency = True)
+bazel_dep(name = "rules_cc", version = "0.0.9", dev_dependency = True)
+http_archive(
+    name = "rules_nixpkgs_cc",
+    sha256 = "2a555348d7f8593fca2bf3fc6ce53c5d62929de81b6c292e23f16c557c0ae45a",
+    strip_prefix = "rules_nixpkgs-0.11.1/toolchains/cc",
+    urls = ["https://github.com/tweag/rules_nixpkgs/releases/download/v0.11.1/rules_nixpkgs-0.11.1.tar.gz"],
+    dev_dependency = True,
+)
+
+non_module_deps = use_extension(
+    "//:non_module_deps.bzl",
+    "non_module_deps",
+    dev_dependency = True,
+)
+use_repo(
+    non_module_deps, 
+    "local_config_cc",
+    "local_config_cc_info",
+    "local_config_cc_toolchains",
+)
+
+register_toolchains(
+    "@local_config_cc_toolchains//:all",
+)
