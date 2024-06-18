@@ -1,2 +1,2 @@
-# NixOS 24.05 (2024-06-14)
-import (fetchTarball "https://github.com/nixos/nixpkgs/archive/cc54fb41d13736e92229c21627ea4f22199fee6b.tar.gz")
+# NixOS 23.11 (2024-06-15)
+import (fetchTarball "https://github.com/nixos/nixpkgs/archive/842253bf992c3a7157b67600c2857193f126563a.tar.gz")
