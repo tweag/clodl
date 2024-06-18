@@ -30,6 +30,7 @@ load(
     "@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
     "nixpkgs_local_repository",
     "nixpkgs_package",
+    "nixpkgs_cc_configure",
     "nixpkgs_python_configure",
 )
 
@@ -38,6 +39,7 @@ nixpkgs_local_repository(
     nix_file = "//:nixpkgs.nix",
 )
 
+nixpkgs_cc_configure(repository = "@nixpkgs")
 nixpkgs_python_configure(repository = "@nixpkgs")
 
 load("@rules_haskell//haskell:nixpkgs.bzl", "haskell_register_ghc_nixpkgs")
