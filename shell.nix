@@ -2,7 +2,7 @@
 
 with pkgs;
 
-mkShell {
+mkShell ({
   # XXX: hack for macosX, this flags disable bazel usage of xcode
   # Note: this is set even for linux so any regression introduced by this flag
   # will be catched earlier
@@ -23,4 +23,6 @@ mkShell {
     # convenience dependencies
     less
   ];
-}
+} // lib.attrsets.optionalAtts stdenv.isDarwin {
+  LIBTOOL = "${libtool}/bin/libtool";
+})
